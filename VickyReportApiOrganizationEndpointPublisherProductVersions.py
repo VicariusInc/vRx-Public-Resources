@@ -1,4 +1,5 @@
-#Author: Joaldir Rani
+
+uthor: Joaldir Rani
 
 from datetime import datetime
 from email.mime import application
@@ -73,25 +74,19 @@ def getEndpointPublisherProductVersions(apikey,urldashboard,fr0m,siz3,count):
         endpointId = str((i['organizationEndpointPublisherProductVersionsEndpoint']['endpointId']))
         
         #print(json.dumps(i, indent=4, sort_keys=True))
-        print(i['organizationEndpointPublisherProductVersionsProductRawEntry']['productRawEntryName'])
-        print(i['organizationEndpointPublisherProductVersionsApplication']['applicationId'])
-        print(i['organizationEndpointPublisherProductVersionsEndpoint']['endpointName'])
-        print(i['organizationEndpointPublisherProductVersionsEndpoint']['endpointId'])
 
         try:
-            print(i['organizationEndpointPublisherProductVersionsPublisher']['publisherName'])
+            
             publisherName = (i['organizationEndpointPublisherProductVersionsPublisher']['publisherName']).replace(',',' ')
         except:
-            print(i['organizationEndpointPublisherProductVersionsProductRawEntry']['productRawEntryName'])
+            
             publisherName = (i['organizationEndpointPublisherProductVersionsProductRawEntry']['productRawEntryName']).replace(',','')
 
-        print(i['organizationEndpointPublisherProductVersionsOperatingSystemFamily']['operatingSystemFamilyName'])
-        
         try:
-            print(i['organizationEndpointPublisherProductVersionsVersion']['versionName'])
+            
             productVersion = str((i['organizationEndpointPublisherProductVersionsVersion']['versionName'])).replace(',','.')
         except:
-            print("version")
+            
             productVersion = "-"
 
         f.write(asset + "," + productName + "," + productRawEntryName + "," + productVersion + "," + publisherName + "," + operatingSystemFamilyName + "," + endpointId + "," + applicationId + "\n")
