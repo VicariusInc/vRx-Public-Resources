@@ -88,8 +88,6 @@ def getEndpointVulnerabilities(apikey,urldashboard,fr0m,siz3,count):
         vulnerabilitySummary = vulnerabilitySummary.replace("\r","").replace("\n",">>")
         vulnerabilitySummary = vulnerabilitySummary.replace(',',"")
 
-        #print(asset + "," + productName + "," + productRawEntryName + "," + sensitivityLevelName + "," + cve + ",\"" + vulnerabilitySummary + "\"," + link + "," + createAt + "," + updateAt + "\n")
-        
         f.write(asset + "," + productName + "," + productRawEntryName + "," + sensitivityLevelName + "," + cve + ",\"" + vulnerabilitySummary + "\"," + link + "," + createAt + "," + updateAt + "\n")
                 
     fr0m = fr0m + siz3
