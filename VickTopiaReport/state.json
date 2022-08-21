@@ -1,0 +1,14 @@
+{
+  "lastEndpoints": 23123123,
+  "reportNameEndpoints" : "Endpoints.csv",
+  "lastEndpointVulnerabilities": 323516,
+  "reportNameVulnerabilities": "EnpointsVulnerabilities.csv",
+  "lastEndpointsEventTask": 0,
+  "reportNameEventsTasks": "EndpointsEventTask.csv",
+  "lastEndpointPublisherProductVersions": 0,
+  "fileEndpointPublisherProductVersions": "EndpointPublisherProductVersions.csv",
+  "lastPatchsEndpoint": 0,
+  "reportNameEndpointPatchs": "EndpointPatchs.csv",
+  "lastCVEsEndpoint": 0,
+  "reportNameEndpointCVEs":"EndpointCVES.csv"
+}
