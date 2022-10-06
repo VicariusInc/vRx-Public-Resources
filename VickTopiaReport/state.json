@@ -1,0 +1,20 @@
+{
+  "lastEndpoints": 0,
+  "reportAssets": "reports\\Endpoints.csv",
+  "lastEndpointVulnerabilities": 0,
+  "reportNameVulnerabilities": "reports\\Vulnerabilities.csv",
+  "lastEndpointsEventTask": 0,
+  "reportNameEventsTasks": "reports\\EndpointsEventTask.csv",
+  "lastProductVersions": 0,
+  "reportNameProducts": "reports\\EndpointProductVersions.csv",
+  "lastPatchsEndpoint": 0,
+  "reportNameEndpointPatchs": "reports\\EndpointPatchs.csv",
+  "lastCVEsEndpoint": 0,
+  "reportNameEndpointCVEs": "reports\\EndpointCVES.csv",
+  "reportNameTopiavsNessus": "reports\\TopiavsNessus.csv",
+  "lastIncidentEventVulnerabilities": 0,
+  "reporIncidentEventVulnerabilities": "reports\\EndpointIncidentesVulnerabilities.csv",
+  "reportAssetsAttrributes": "reports\\EndpointsAttributes.csv",
+  "reportAssetsExploitabilityRiskFactors": "reports\\EndpointsExploitabilityRiskFactors.csv",
+  "reportAssetsScoresImpactRiskFactors": "reports\\EndpointsScoresImpactRiskFactors.csv"
+}
