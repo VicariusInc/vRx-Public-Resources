@@ -1,6 +1,7 @@
 {
   "lastEndpoints": 0,
   "reportAssets": "reports\\Endpoints.csv",
+  "reportAssetsGroup": "reports\\EndpointsGroup.csv",
   "lastEndpointVulnerabilities": 0,
   "reportNameVulnerabilities": "reports\\Vulnerabilities.csv",
   "lastEndpointsEventTask": 0,

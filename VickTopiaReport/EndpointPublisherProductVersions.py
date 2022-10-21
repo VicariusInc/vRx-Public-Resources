@@ -1,6 +1,4 @@
 #Author: Joaldir Rani
-
-from itertools import product
 import requests
 import json
 

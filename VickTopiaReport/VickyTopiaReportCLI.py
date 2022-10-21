@@ -2,7 +2,6 @@
 #Author: Joaldir Rani
 
 import argparse
-from requests import patch
 from tqdm import tqdm
 import time
 import pandas as pd
