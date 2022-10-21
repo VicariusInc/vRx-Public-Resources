@@ -31,7 +31,7 @@ def getCountEndpointsPatchs(apikey,urldashboard,endpointhash):
 
     return responsecount
 
-def getEndpointsPatchs(apikey,urldashboard,fr0m,siz3,endpointHash,endpointName):
+def getEndpointsPatchs(apikey,urldashboard,fr0m,siz3,endpointHash,endpointName,endpointSO):
 
     headers = {
         'Accept': 'application/json',
@@ -54,13 +54,14 @@ def getEndpointsPatchs(apikey,urldashboard,fr0m,siz3,endpointHash,endpointName):
     try:
         response = requests.get(urldashboard + '/vicarius-external-data-api/aggregation/searchGroup?', params=params, headers=headers)
         parsed = json.loads(response.text)
-        print(json.dumps(parsed,indent=2))
   
     except:
         print("something is wrong, will try again....")
+        return endpointName
 
     strPatchEndpoints = ""
     for i in parsed['serverResponseObject']:
-        strPatchEndpoints += ("\""+ endpointName + "\",\"" + i['aggregationId'] + "\"\n")
+        strPatchEndpoints += ("\"" + endpointName + "\",\"" + endpointSO + "\",\"" + i['aggregationName'] + "\"," + i['aggregationId'] +"\"\n")
+        
     
     return strPatchEndpoints
