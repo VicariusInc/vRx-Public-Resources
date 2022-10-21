@@ -110,7 +110,7 @@ def getEndpoitsExternalAttributes(apikey,urldashboard,fr0m,siz3):
         #print(i['endpointAttributesAttribute']['attributeAttributeSource']['attributeSourceName'])
         attrib = (i['endpointAttributesAttribute']['attributeAttributeSource']['attributeSourceName'])
         strEndpointsAttributes += (str(endpointId) + "," + endpointName + "," + attrib + "," + value + "\n")
-        print(attrib+":"+value)
+        #print(attrib+":"+value)
     
     return strEndpointsAttributes
 
