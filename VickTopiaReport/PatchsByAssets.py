@@ -61,6 +61,7 @@ def getEndpointsPatchs(apikey,urldashboard,fr0m,siz3,endpointHash,endpointName,e
 
     strPatchEndpoints = ""
     for i in parsed['serverResponseObject']:
+        
         strPatchEndpoints += ("\"" + endpointName + "\",\"" + endpointSO + "\",\"" + i['aggregationName'] + "\"," + i['aggregationId'] +"\"\n")
         
     

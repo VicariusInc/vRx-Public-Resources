@@ -39,12 +39,12 @@ urldashboard = args.dashboard
 #Get the Stats and Reports Names
 dictState = state.getState()
 
-def getAllEndpoitsTasks(fr0m,siz3,count,pbar):
-    if fr0m == 0:
+def getAllEndpoitsTasks(fr0m,siz3,count,pbar,lastdate):
+    if lastdate == 0:
         head = "Taskid,AutomationId,AutomationName,Asset,TaskType,PublisherName,PathOrProduct,PathOrProductDesc,ActionStatus,MessageStatus,Username,CreateAt,UpdateAt\n"
         writeReport(dictState['reportNameEventsTasks'],head)
     
-    strTasks = tasks.getTasksEndopintsEvents(apikey,urldashboard,fr0m,siz3)
+    strTasks,lastdate = tasks.getTasksEndopintsEvents(apikey,urldashboard,fr0m,siz3,lastdate)
     
     writeReport(dictState['reportNameEventsTasks'],strTasks)    
     
@@ -54,25 +54,25 @@ def getAllEndpoitsTasks(fr0m,siz3,count,pbar):
     fr0m += siz3
       
     if fr0m < count:
-        dictState.update({'lastEndpointsEventTask': fr0m})
+        dictState.update({'lastEndpointsEventTask': lastdate})
         state.setState(dictState)
-        getAllEndpoitsTasks(fr0m,siz3,count,pbar)
+        getAllEndpoitsTasks(fr0m,siz3,count,pbar,lastdate)
 
     else:
         pbar.update(count)
         time.sleep(0.25)
 
-        dictState.update({'lastEndpointsEventTask': count})
+        dictState.update({'lastEndpointsEventTask': lastdate})
         state.setState(dictState)
         pbar.close()
         print("Done!")
 
-def getAllEndpoitsVulnerabilities(fr0m,siz3,count,pbar):
-    if fr0m == 0:
+def getAllEndpoitsVulnerabilities(fr0m,siz3,count,pbar,lastdate):
+    if lastdate == 0:
         head = "asset,productName,productRawEntryName,sensitivityLevelName,cve,patchid,patchName,patchReleaseDate,createAt,updateAt,link,vulnerabilitySummary\n"
         writeReport(dictState['reportNameVulnerabilities'],head)
     
-    strVulnerabilities = vuln.getEndpointVulnerabilities(apikey,urldashboard,fr0m,siz3)
+    strVulnerabilities,lastdate = vuln.getEndpointVulnerabilities(apikey,urldashboard,fr0m,siz3,lastdate)
     writeReport(dictState['reportNameVulnerabilities'],strVulnerabilities)
    
     pbar.update(siz3)
@@ -81,15 +81,15 @@ def getAllEndpoitsVulnerabilities(fr0m,siz3,count,pbar):
     fr0m += siz3   
     
     if fr0m < count:
-        dictState.update({'lastEndpointVulnerabilities': fr0m})
+        dictState.update({'lastEndpointVulnerabilities': lastdate})
         state.setState(dictState)
-        getAllEndpoitsVulnerabilities(fr0m,siz3,count,pbar)
+        getAllEndpoitsVulnerabilities(fr0m,siz3,count,pbar,lastdate)
 
     else:
         pbar.update(count)
         time.sleep(0.25)
 
-        dictState.update({'lastEndpointVulnerabilities': count})
+        dictState.update({'lastEndpointVulnerabilities': lastdate})
         state.setState(dictState)
         pbar.close()
         print("Done!")
@@ -219,12 +219,12 @@ def getAllEndpoitsScoresImpactRiskFactors(fr0m,siz3,count,pbar):
         pbar.close()
         print("Done!")
 
-def getAllIncidentEventVulnerabilities(fr0m,siz3,count,pbar,incidenttype):
-    if fr0m == 0:
-        head = "ASSET,CVE,SEVERITY,TYPE,PUBLISHER,PRODUCT,EVENTDATE\n"
+def getAllIncidentEventVulnerabilities(fr0m,siz3,count,pbar,incidenttype,lastdate):
+    if int(lastdate) == 0:
+        head = "asset,cve,severity,eventType,publisher,apporso,threatLevelId,vulV3exploitlevel,vulv3basescore,patchId,vulsummary,eventcreatedat,eventupdatedat\n"
         writeReport(dictState['reporIncidentEventVulnerabilities'],head)
 
-    strEventsVuln = incidents.getIncidentEventsbyType(apikey,urldashboard,fr0m,siz3,incidenttype)
+    strEventsVuln,lastdate = incidents.getIncidentEventsbyType(apikey,urldashboard,fr0m,siz3,incidenttype,lastdate)
     writeReport(dictState['reporIncidentEventVulnerabilities'],strEventsVuln)
     
     pbar.update(siz3)
@@ -233,15 +233,17 @@ def getAllIncidentEventVulnerabilities(fr0m,siz3,count,pbar,incidenttype):
     fr0m += siz3
 
     if fr0m < count:
-        dictState.update({'lastIncidentEventVulnerabilities': fr0m})
+        dictState.update({'lastIncidentEventVulnerabilities': int(lastdate)})
         state.setState(dictState)
-        getAllIncidentEventVulnerabilities(fr0m,siz3,count,pbar,incidenttype)
+        lastdate = str(lastdate)
+        getAllIncidentEventVulnerabilities(fr0m,siz3,count,pbar,incidenttype,lastdate)
 
     else:
         pbar.update(siz3)
         time.sleep(0.25)
         
-        dictState.update({'lastIncidentEventVulnerabilities': count})
+        dictState.update({'lastIncidentEventVulnerabilities': int(lastdate)})
+        lastdate = int(lastdate)
         state.setState(dictState)     
         pbar.close()
         print("Done!")
@@ -322,7 +324,7 @@ def generateExcel(reportstogen):
         
         excel_file = (str(reporttogen).replace(".csv",".xlsx")) #'TopiaReport.xlsx'
         
-        print(str(reporttogen).replace(".csv",""))
+        #print(str(reporttogen).replace(".csv",""))
 
         namesheet = str(reporttogen).replace(".csv","")
         namesheet = namesheet.replace("reports\\","")
@@ -472,25 +474,26 @@ def getReportTopiaNessus(lstEndpointName,reportNessusName):
     writeReport(dictState['reportNameTopiavsNessus'],strReportTopiaNessus)
 
 def ReportTaskEvents():
-    taskcount = tasks.getCountEvents(apikey,urldashboard)
+    lastdate = str(dictState['lastEndpointsEventTask'])
+    taskcount = tasks.getCountEvents(apikey,urldashboard,lastdate)
     print("Tasks -> " + str(taskcount))
-    fr0m = dictState['lastEndpointsEventTask']
-
+    
+    fr0m = 0
     if fr0m < taskcount:
-        deltacount = taskcount - fr0m
-        with tqdm(total=deltacount,desc="Tasks") as pbar:
-            getAllEndpoitsTasks(fr0m,1000,taskcount,pbar)
+        with tqdm(total=taskcount,desc="Tasks") as pbar:
+            getAllEndpoitsTasks(fr0m,1000,taskcount,pbar,lastdate)
     else:
         print("Done!")
     
 def ReportVunerabilities():
-    vulncount = vuln.getCountEvents(apikey,urldashboard)
+    lastdate = str(dictState['lastEndpointVulnerabilities'])
+    vulncount = vuln.getCountEvents(apikey,urldashboard,lastdate)
     print("Vulnerabilities -> " + str(vulncount))
-    fr0m = dictState['lastEndpointVulnerabilities']
+    
+    fr0m = 0
     if fr0m < vulncount:
-        deltacount = vulncount - fr0m
-        with tqdm(total=deltacount,desc="Vulnerabilities") as pbar:
-            getAllEndpoitsVulnerabilities(fr0m,1000,vulncount,pbar)
+        with tqdm(total=vulncount,desc="Vulnerabilities") as pbar:
+            getAllEndpoitsVulnerabilities(fr0m,1000,vulncount,pbar,lastdate)
     else:
         print("Done!")
 
@@ -522,7 +525,7 @@ def ReportEndpoints():
 
 def ReportEndpointsAttributes():
     endpointattribcount = assets.getEndpoitsExternalAttributesCount(apikey,urldashboard)
-    print("EndpointsAttribs -> " + str(endpointattribcount))
+    #print("EndpointsAttribs -> " + str(endpointattribcount))
     fr0m = 0       
     
     if fr0m < endpointattribcount:
@@ -556,16 +559,14 @@ def ReportEndpointScores():
 
 def ReportIncident():
     incidenttype = "MitigatedVulnerability,DetectedVulnerability"
-    eventcount = incidents.getIncidentesEventsCountbyType(apikey,urldashboard,incidenttype)
+    lastdate = str(dictState['lastIncidentEventVulnerabilities'])
+    eventcount = incidents.getIncidentesEventsCountbyType(apikey,urldashboard,incidenttype,lastdate)
     print("Event Incident Vulnerabilities -> " + str(eventcount))
     
-    fr0m = dictState['lastIncidentEventVulnerabilities']       
-    
+    fr0m = 0    
     if fr0m < eventcount:
-        deltacount = eventcount - fr0m
-        with tqdm(total=deltacount,desc="Event Vulnerabilities") as pbar:
-            
-            getAllIncidentEventVulnerabilities(fr0m,1000,eventcount,pbar,incidenttype)
+        with tqdm(total=eventcount,desc="Event Vulnerabilities") as pbar:            
+            getAllIncidentEventVulnerabilities(fr0m,100,eventcount,pbar,incidenttype,lastdate)
     else:
         print("Done!")
 
@@ -578,9 +579,14 @@ def ReportEndpointPatchs():
     with tqdm(total=len(df.index),desc="Endpoint Pacths") as pbar:            
 
         for ind in df.index:
-            pbar.update()
-                       
-            strEndpointPatchs = patchs.getEndpointsPatchs(apikey,urldashboard,0,500,df['HASH'][ind],df['HOSTNAME'][ind],df['SO'][ind])
+            #pbar.update()
+            endpointhash = df['HASH'][ind]
+            endpointname = df['HOSTNAME'][ind] 
+            countptchs = patchs.getCountEndpointsPatchs(apikey,urldashboard,endpointhash)
+            #print(endpointname + "," + str(countptchs))
+            strcountendpointpatchs = endpointname + "," + str(countptchs) + "\n"
+            writeReport(dictState['reportCountEndpointPatchs'],strcountendpointpatchs)         
+            strEndpointPatchs = patchs.getEndpointsPatchs(apikey,urldashboard,0,1000,df['HASH'][ind],df['HOSTNAME'][ind],df['SO'][ind])
             writeReport(dictState['reportNameEndpointPatchs'],strEndpointPatchs)
 
         pbar.close()
