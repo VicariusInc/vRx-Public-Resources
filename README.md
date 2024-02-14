@@ -1,2 +1,2 @@
 # vicarius-external-scripts
-Different scripts for TOPIA users
+Different scripts for vRx users
