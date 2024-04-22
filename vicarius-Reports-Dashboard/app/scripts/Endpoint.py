@@ -1,0 +1,198 @@
+#Author: Joaldir Rani
+import requests
+import json
+from datetime import datetime
+
+def getCountEndpoints(apikey,urldashboard):
+
+    headers = {
+        'Accept': 'application/json',
+        'Vicarius-Token': apikey,
+    }
+
+    params = {
+        'from': 0,
+        'size': 1,
+    }
+
+    try:
+        response = requests.get(urldashboard + '/vicarius-external-data-api/endpoint/search', params=params, headers=headers)
+        jsonresponse = json.loads(response.text)
+        responsecount = jsonresponse['serverResponseCount']
+
+    except:
+        print("something is wrong, will try again....")
+        print("response: ",response.text)
+
+    return responsecount
+
+def getEndpoints(apikey,urldashboard,fr0m,siz3):
+
+    headers = {
+        'Accept': 'application/json',
+        'Vicarius-Token': apikey,
+    }
+
+    params = {
+        'from': fr0m,
+        'size': siz3,
+    }
+
+    try:
+        response = requests.get(urldashboard + '/vicarius-external-data-api/endpoint/search', params=params, headers=headers)
+        parsed = json.loads(response.text)        
+        
+    except:
+        print("something is wrong, will try again....")
+
+    strEndpoints = ""
+    
+    for i in parsed['serverResponseObject']:
+        deployment_date = str(i['endpointCreatedAt'])
+        last_connected = str((i['endpointUpdatedAt']))
+        operatingSystemName = (i['endpointOperatingSystem']['operatingSystemName'])
+        agentVersion = (i['endpointVersion']['versionName'])
+        alive = (i['endpointAlive'])
+        if alive == "true":
+            now = datetime.now()
+            LastContact = now.strftime('%Y-%m-%dT%H:%M:%S')
+        else:
+            LastContact = datetime.fromtimestamp(int(last_connected) / 1000).isoformat()
+        tokenGenTimeUNX = (i['endpointTokenGenerationTime'])
+        tokenGenTime = datetime.fromtimestamp(int(tokenGenTimeUNX) / 1000).isoformat()
+        deploymentDateUNX = i['endpointCreatedAt']
+        deploymentDate = datetime.fromtimestamp(int(deploymentDateUNX) / 1000).isoformat()
+        try:
+            substatus = i['endpointEndpointSubStatus']['endpointSubStatusName']
+        except: 
+            substatus = ""
+        try: 
+            connectedbyProxy = i['endpointConnectedByProxy']
+        except:
+            connectedbyProxy = ""
+
+        strEndpoints += ("'" + str(i['endpointId']) + "','" + i['endpointName'] + "','" + i['endpointHash'] + "','" + str(alive) + "','" + operatingSystemName + "','" + agentVersion + "','" + substatus + "','" + str(connectedbyProxy) + "','" + tokenGenTime + "','" + deployment_date + "','" + last_connected + "','" + deploymentDate + "','" + LastContact + "'\n")
+    
+    return strEndpoints
+
+def getEndpoitsExternalAttributesCount(apikey,urldashboard):
+    
+    headers = {
+        'Accept': 'application/json',
+        'Vicarius-Token': apikey,
+    }
+
+    params = {
+        'from': 0,
+        'size': 1,
+    }
+
+    try:
+        response = requests.get(urldashboard + '/vicarius-external-data-api/endpointAttributes/search', params=params, headers=headers)
+        parsed = json.loads(response.text)
+        responsecount = parsed['serverResponseCount']
+        
+    except:
+        print("something is wrong, will try again....")
+    
+    return responsecount
+
+def getEndpoitsExternalAttributes(apikey,urldashboard,fr0m,siz3):
+    
+    headers = {
+        'Accept': 'application/json',
+        'Vicarius-Token': apikey,
+    }
+
+    params = {
+        'from': fr0m,
+        'size': siz3,
+    }
+
+    try:
+        response = requests.get(urldashboard + '/vicarius-external-data-api/endpointAttributes/search', params=params, headers=headers)
+        parsed = json.loads(response.text)
+        
+    except:
+        print("something is wrong, will try again....")
+
+    #print(json.dumps(parsed['serverResponseCount'],indent=2))
+    #print(json.dumps(parsed['serverResponseObject'],indent=2))
+    strEndpointsAttributes = ""
+    for i in parsed['serverResponseObject']:
+        try:
+            endpointId = i['endpointAttributesEndpoint']['endpointId']
+            endpointName = i['endpointAttributesEndpoint']['endpointName']
+            value = (i['endpointAttributesAttribute']['attributeExternalId'])
+            attrib = (i['endpointAttributesAttribute']['attributeAttributeSource']['attributeSourceName'])
+            strEndpointsAttributes += (str(endpointId) + "," + endpointName + "," + attrib + "," + value + "\n")
+            #print(attrib+":"+value)
+        except:
+            print("error!! next")
+
+    
+    return strEndpointsAttributes
+
+def getEndpointScoresExploitabilityRiskFactors(apikey,urldashboard,fr0m,siz3):
+
+    headers = {
+        'Accept': 'application/json',
+        'Vicarius-Token': apikey,
+    }
+
+    params = {
+        'from': fr0m,
+        'size': siz3,
+        'includeFields': 'endpointId,endpointEndpointScores,endpointName',
+    }
+
+    try:
+        response = requests.get(urldashboard + '/vicarius-external-data-api/endpoint/search', params=params, headers=headers)
+        parsed = json.loads(response.text)
+        
+    except:
+        print("something is wrong, will try again....")
+
+    strEndpointsExploitabilityRiskFactors = ""
+    for i in parsed['serverResponseObject']:
+        endpointId = i['endpointId']
+        endpointName = i['endpointName']
+        #print(i['endpointScoresExploitabilityRiskFactors'])
+        for j in i['endpointEndpointScores']['endpointScoresExploitabilityRiskFactors']:
+            riskFactorTerm = j['riskFactorTerm']
+            riskFactorDescription = j['riskFactorDescription']            
+            strEndpointsExploitabilityRiskFactors += (str(endpointId) + "," + endpointName + "," + riskFactorTerm + "," + riskFactorDescription + "\n")
+        
+    return strEndpointsExploitabilityRiskFactors
+
+def getEndpointScoresImpactRiskFactors(apikey,urldashboard,fr0m,siz3):
+
+    headers = {
+        'Accept': 'application/json',
+        'Vicarius-Token': apikey,
+    }
+
+    params = {
+        'from': fr0m,
+        'size': siz3,
+        'includeFields': 'endpointId,endpointEndpointScores,endpointName',
+    }
+
+    try:
+        response = requests.get(urldashboard + '/vicarius-external-data-api/endpoint/search', params=params, headers=headers)
+        parsed = json.loads(response.text)
+        
+    except:
+        print("something is wrong, will try again....")
+
+    strEndpointScoresImpactRiskFactors = ""
+    for i in parsed['serverResponseObject']:
+        endpointId = i['endpointId']
+        endpointName = i['endpointName']
+
+        for j in i['endpointEndpointScores']['endpointScoresImpactRiskFactors']:
+            riskFactorTerm = j['riskFactorTerm']
+            riskFactorScore = j['riskFactorScore']            
+            strEndpointScoresImpactRiskFactors += (str(endpointId) + "," + endpointName + "," + riskFactorTerm + "," + str(riskFactorScore) + "\n")
+
+    return strEndpointScoresImpactRiskFactors

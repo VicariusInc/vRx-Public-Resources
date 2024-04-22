@@ -1,0 +1,13 @@
+reports/*
+app/scripts/__pycache__
+logs/*
+superset
+app/scripts/DoNotUpload-dev-localdbcon.py
+pgadmin/*
+app/scripts/test-Apps.py
+app/scripts/test-Apps.py
+app/scripts/test-Apps.py
+/app/scripts/metabase/old
+app/scripts/testtimestamp.py
+metabase/notemplate-backukp.sql
+Packager.sh
