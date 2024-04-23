@@ -34,14 +34,13 @@ Example: organization in https://organization.vicarius.cloud/
 
 ### Download and unzip the file
 Download the package to the asset that will host the docker containers
-
 vRxReportsDashboard.tar.gz https://github.com/jordan-Vicarius/Vicarius-vRx-Reports-Dashboard/releases/latest/download/vicarius-vrx-reports.tar.gz
 
 Newest Version
 ```bash
 mkdir vicarius-vrx-reports-dashboard
 cd vicarius-vrx-reports-dashboard
-wget https://github.com/VicariusInc/vRx-Public-Resources/releases/latest/download/vicarius-vrx-reports.tar.gz
+wget https://github.com/jordan-Vicarius/Vicarius-vRx-Reports-Dashboard/releases/latest/download/vicarius-vrx-reports.tar.gz
 tar -xvzf vicarius-vrx-reports.tar.gz
 ```
 
