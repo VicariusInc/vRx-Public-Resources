@@ -22,6 +22,7 @@ Sizing recommendations are based on the number of assets in your dashboard.
   * Ubuntu 22.04 has been thoroughly tested
   * Any OS that supports Bash scripting and Docker
 
+### Set the timezone on the VM to your timezone.
 
 ### Review the following KB article to create a new API Key from your Vrx Dashboard
 https://customer-portal.vicarius.io/getting-started-with-vrx-rest-api
