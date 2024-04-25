@@ -1,0 +1,6 @@
+0 */24 * * * cd /usr/src/app && /usr/local/bin/python /usr/src/app/scripts/VickyTopiaReportCLI.py --allreports >> /var/log/crontab.log 2>&1
+
+0 */1 * * * cd /usr/src/app && /usr/local/bin/python /usr/src/app/scripts/VickyTopiaReportCLI.py -t >> /var/log/crontab.log 2>&1
+*/30 * * * * cd /usr/src/app && /usr/local/bin/python /usr/src/app/scripts/VickyTopiaReportCLI.py -i >> /var/log/crontab.log 2>&1
+
+@reboot cd /usr/src/app && /usr/local/bin/python /usr/src/app/scripts/VickyTopiaReportCLI.py -i >> /var/log/crontab.log 2>&1
