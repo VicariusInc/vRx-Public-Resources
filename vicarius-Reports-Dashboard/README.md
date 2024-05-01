@@ -66,19 +66,22 @@ Copy your api key from the vRx dashboard
 - Login into your dashboard
 - go to Settings - Integrations - Installed Integrations - API
 - Click on the API and copy the API Key
-- ![image](https://github.com/jordan-Vicarius/Vicarius-vRx-Reports-Dashboard/assets/115802071/caa6bd2f-a8af-406e-97ba-7b20c648e66d)
+- ![API](https://github.com/VicariusInc/vRx-Public-Resources/assets/115802071/b14ee8a5-c8e2-46f0-a8e1-37be4520d4de)
+
 
 
 Your dashboard_ID is the first portion of your dashboard url 
 - https://example.vicarius.cloud, Dashboard_id is example
-- ![image](https://github.com/jordan-Vicarius/Vicarius-vRx-Reports-Dashboard/assets/115802071/1f1ddc2f-3ae3-4816-9c29-d579506eb58f)
+- ![dbname](https://github.com/VicariusInc/vRx-Public-Resources/assets/115802071/321048fc-a642-4143-96d1-7c58ddd01188)
+
 
 Create the password for the local Database. This user will be used to access the database by data visualization tools. Please keep the username and password in a safe place
 
 Optional Tools:
 Specify Which Optional Tools you would like to be installed. 
 - Metabase: Data Visualization with Template
-- ![image](https://github.com/jordan-Vicarius/Vicarius-vRx-Reports-Dashboard/assets/115802071/16fdd3b2-3172-4ca6-8163-f957c86d8106)
+- ![metabase](https://github.com/VicariusInc/vRx-Public-Resources/assets/115802071/41f3074a-8175-44d1-a950-6926dea4ae6f)
+
 
 
 ### Bulid and push Docker images to Registry 
@@ -104,7 +107,8 @@ Run docker ps to confirm the containers are up.
 ```bash
 sudo docker ps
 ```
-![image](https://github.com/jordan-Vicarius/Vicarius-vRx-Reports-Dashboard/assets/115802071/5c34632c-3d4a-4017-bb1b-ee199ac0b6bc)
+![dockerps](https://github.com/VicariusInc/vRx-Public-Resources/assets/115802071/f23bafc4-0250-4067-aac4-9d8d0e7ebd8f)
+
 
 
 # Optional Tools
@@ -135,13 +139,14 @@ Metabase Docker Service
 ```bash
 sudo docker service ls
  ```
-- ![image](https://github.com/jordan-Vicarius/Vicarius-vRx-Reports-Dashboard/assets/115802071/deea46ec-f478-4935-8278-55a98b3952d0)
+- ![metabasels](https://github.com/VicariusInc/vRx-Public-Resources/assets/115802071/322c27cc-6ba6-4775-b027-2425a867bc43)
+
 
 Metabase Docker Container
 ```bash
 sudo docker ps
  ```
-- ![image](https://github.com/jordan-Vicarius/Vicarius-vRx-Reports-Dashboard/assets/115802071/4f523aa8-828c-44e9-8c4e-db58f50f8eaf)
+- ![metabasels2](https://github.com/VicariusInc/vRx-Public-Resources/assets/115802071/e97b8c63-c39f-450a-8dc9-84c0b368b460)
 
 ### Configure Metabase
 Navigate to Metabase installation in a web browser 
@@ -155,13 +160,14 @@ The Metabase installation installs a template by default. When you navigate to t
 - Default Password: Vicarius123!@#
 
 Once Logged in go to settings account settings and change the default password 
-- ![image](https://github.com/jordan-Vicarius/Vicarius-vRx-Reports-Dashboard/assets/115802071/6a7e1c86-cb83-4f70-9d0a-27ae3c94fab9)
+- ![mbaccountsettings](https://github.com/VicariusInc/vRx-Public-Resources/assets/115802071/c0a789fe-8b32-4179-9054-548b68861e20)
+
 
 
 After changing the default credentials, Change the database settings to reflect the database user and password created earlier.
 
 - Go to Settings - Admin Settings - Selecte Database on the top navigation window
--![image](https://github.com/jordan-Vicarius/Vicarius-vRx-Reports-Dashboard/assets/115802071/2b53c6f1-977a-4d55-bc42-4c359b2fb8fd)
+-![mbdatabse](https://github.com/VicariusInc/vRx-Public-Resources/assets/115802071/14375fae-89e0-4136-b0d0-dafc82397076)
 - Select the vRX-Reports database
 - Change the following settings
   - Database Name: Your dashboard name
