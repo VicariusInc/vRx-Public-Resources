@@ -65,7 +65,7 @@ def compress_file(src_file):
 
 def extract_file(src_file):
     extracted_file, extension = os.path.splitext(src_file)
-    print(extracted_file)
+    #print(extracted_file)
     with gzip.open(src_file, 'rb') as f_in:
         with open(extracted_file, 'wb') as f_out:
             for line in f_in:
@@ -121,7 +121,7 @@ def restore_postgres_db(db_host, db, port, user, password, backup_file, verbose)
 
     if verbose:
         try:
-            print(user,password,db_host,port,db,backup_file)
+            #print(user,password,db_host,port,db,backup_file)
             process = subprocess.Popen(
                 ['pg_restore',
                  '--no-owner',

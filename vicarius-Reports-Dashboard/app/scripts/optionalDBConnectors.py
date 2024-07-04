@@ -11,6 +11,24 @@ import string
 import random
 import json
 
+def termiante_db_users(host,port,user,password):
+    db_params = {
+        'host': host,
+        'port': port,
+        'user': user,
+        'password': password,
+        'database': 'postgres'  # Banco de dados padrão para conexão inicial
+    }
+    # Conectar ao PostgreSQL
+    conn = psycopg2.connect(**db_params)
+    conn.autocommit = True
+    # Criar cursor
+    cur = conn.cursor()
+    database = "metabase"
+    cur.execute("SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'metabase';")
+    conn.commit()
+    conn.close()
+
 def drop_metabase_db(host,port,user,password):
     db_params = {
         'host': host,
@@ -25,7 +43,11 @@ def drop_metabase_db(host,port,user,password):
     # Criar cursor
     cur = conn.cursor()
     database = "metabase"
-    cur.execute("SELECT 1 FROM pg_database WHERE datname='" + database + "'")
+    try:
+        cur.execute("SELECT 1 FROM pg_database WHERE datname='" + database + "'")
+    except:
+        termiante_db_users(host,port,user,password)
+        cur.execute("SELECT 1 FROM pg_database WHERE datname='" + database + "'")
     exists = cur.fetchone()
     if not exists:
         dbexisted = False
@@ -137,7 +159,7 @@ def create_user_metabase(host,port,user,password):
     }
     #print(dict)
     json_obj = json.dumps(dict,indent=8)
-    print(json_obj)
+    #print(json_obj)
     #write username password to json file for restore later
     with open("mbuser.json", "w") as outfile:
         outfile.write(json_obj)
@@ -187,7 +209,7 @@ def restore_database(host,port):
                 postgres_password,
                 restore_uncompressed,
                 True)
-    print(result)
+    #print(result)
     for line in result.splitlines():
         logger.info(line)
     logger.info("Restore complete")
@@ -305,3 +327,21 @@ def back_postgresDB(host,port):
     logger.info("Compressing {}".format(local_file_path))
     comp_file = mpgdb.compress_file(local_file_path)
     logger.info("Compressed to : {}".format(comp_file))
+
+def termiante_db_users(host,port,user,password):
+    db_params = {
+        'host': host,
+        'port': port,
+        'user': user,
+        'password': password,
+        'database': 'postgres'  # Banco de dados padrão para conexão inicial
+    }
+    # Conectar ao PostgreSQL
+    conn = psycopg2.connect(**db_params)
+    conn.autocommit = True
+    # Criar cursor
+    cur = conn.cursor()
+    database = "metabase"
+    cur.execute("SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'metabase';")
+    conn.commit()
+    conn.close()

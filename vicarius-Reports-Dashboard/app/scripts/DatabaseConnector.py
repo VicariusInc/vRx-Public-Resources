@@ -288,6 +288,33 @@ def check_create_table_endpoints(host, port, user, password, database):
     else:
         print("The table 'endpoints' already exists")
 
+
+
+    # Verificar se The table "endpoints" existe
+    cur.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'endpoints_status')")
+    exists = cur.fetchone()[0]
+
+    if not exists:
+        # Criar The table "endpoints" se não existir
+        create_table_query = """
+        CREATE TABLE endpoints_status (
+            endpoint_id INTEGER,
+            endpoint_name TEXT,
+            endpoint_hash TEXT,
+            alive BOOLEAN,
+            connectedbyProxy TEXT,
+            LastContactDate TIMESTAMP,
+            runtime TIMESTAMP,
+            PRIMARY KEY (endpoint_id,runtime) 
+        );
+        """
+        cur.execute(create_table_query)
+        print("The table 'endpoints_status' was successfully created")
+
+
+    else:
+        print("The table 'endpoints_status' already exists")
+
     # Fechar conexão
     cur.close()
     conn.close()
@@ -360,6 +387,393 @@ def clean_table_endpoints(host, port, user, password, database):
         print("The table  'endpoints' was dropped with great success")
     else:
         print("The table 'endpoints'  does not exist")
+
+    # Fechar conexão
+    cur.close()
+    conn.close()
+
+def insert_into_table_endpointsStatus(data_string, host, port, user, password, database):
+    #print (data_string)
+    # Parâmetros de conexão
+    db_params = {
+        'host': host,
+        'port': port,
+        'user': user,
+        'password': password,
+        'database': database  # Nome do banco de dados onde The table "endpoints" está localizada
+    }
+    ct = datetime.datetime.now()
+    conn = psycopg2.connect(**db_params)
+    conn.autocommit = True
+
+    cur = conn.cursor()
+
+    try:
+        data_lines = data_string.split("\n")
+        for line in data_lines:
+            try:
+                if line.strip():
+                    # Split the line into values
+                    raw_values = line.split(',')
+                    processed_values = [value.strip("'") for value in raw_values]
+                    sqlquery = """
+                    INSERT INTO endpoints_status
+                    (endpoint_id, endpoint_name, endpoint_hash, alive, connectedbyProxy, LastContactDate, runtime)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    """
+                    cur.execute(sqlquery, tuple(processed_values ))
+            except Exception as e:
+                print(f"Error inserting record {line} into table 'endpoints_Status': {e}") 
+        ct = datetime.datetime.now()
+        print(str(ct) + "The data was inserted into the table 'endpoints_status' with great success!")
+    except psycopg2.Error as e:
+        print(str(ct) + "An error occurred when inserting data into the table 'endpoints_status:", e)
+
+    # Fechar conexão
+    cur.close()
+    conn.close()
+
+def check_create_table_endpointsAttribute(host, port, user, password, database):
+    # Parâmetros de conexão
+    db_params = {
+        'host': host,
+        'port': port,
+        'user': user,
+        'password': password,
+        'database': database  # Nome do banco de dados onde The table "endpoints" deve ser verificada/criada
+    }
+
+    # Conectar ao PostgreSQL
+    conn = psycopg2.connect(**db_params)
+    conn.autocommit = True
+
+    # Criar cursor
+    cur = conn.cursor()
+
+    # Verificar se The table "endpoints" existe
+    cur.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'endpointattributes')")
+    exists = cur.fetchone()[0]
+
+    if not exists:
+        # Criar The table "endpoints" se não existir
+        create_table_query = """
+        CREATE TABLE endpointattributes (
+            endpoint_id INTEGER,
+            endpoint_name TEXT,
+            endpoint_hash TEXT,
+            attribute_name TEXT,
+            attribute_value TEXT,
+            PRIMARY KEY (endpoint_id,attribute_name,attribute_value) 
+        );
+        """
+        cur.execute(create_table_query)
+        print("The table 'endpointattributes' was successfully created")
+
+
+    else:
+        print("The table 'endpointattributes' already exists")
+
+    # Fechar conexão
+    cur.close()
+    conn.close()
+
+def insert_into_table_endpointsAttribute(json_data, host, port, user, password, database):
+    #print (data_string)
+    # Parâmetros de conexão
+    db_params = {
+        'host': host,
+        'port': port,
+        'user': user,
+        'password': password,
+        'database': database  # Nome do banco de dados onde The table "endpoints" está localizada
+    }
+    ct = datetime.datetime.now()
+    conn = psycopg2.connect(**db_params)
+    conn.autocommit = True
+
+    cur = conn.cursor()
+
+    try:
+        sql = """
+        INSERT INTO endpointattributes (endpoint_id, endpoint_name, endpoint_hash, attribute_name, attribute_value) VALUES (%(endpointId)s, %(endpointName)s, %(endpointHash)s, %(attrib)s, %(value)s) 
+        """
+        inserted_records = 0
+        for record in json_data:
+            #print(record)
+            try:
+                cur.execute(sql, record)
+
+                inserted_records += 1
+
+            except psycopg2.Error as e:
+                print(str(ct) + "An error occurred while inserting data into the table 'endpointattributes':()", e)
+                # Printing the last executed query can help in debugging
+                print(cur.mogrify(sql, record))
+        print(str(ct) + f" - {inserted_records}  'endpointattributes' inserted successfull at {str(ct)}")
+    except Exception as e:
+        print(str(ct) + "An error occurred while inserting data into the table 'endpointattributes':()", e)
+
+    # Fechar conexão
+    cur.close()
+    conn.close()
+
+def clean_table_endpointsAttribute(host, port, user, password, database):
+    # Parâmetros de conexão
+    db_params = {
+        'host': host,
+        'port': port,
+        'user': user,
+        'password': password,
+        'database': database  # Nome do banco de dados onde The table "activevulnerabilities" está localizada
+    }
+
+    # Conectar ao PostgreSQL
+    conn = psycopg2.connect(**db_params)
+    conn.autocommit = True
+
+    # Criar cursor
+    cur = conn.cursor()
+
+    # Verificar se The table "activevulnerabilities" existe
+    cur.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'endpointattributes')")
+    exists = cur.fetchone()[0]
+
+    if exists:
+        # Limpar The table "activevulnerabilities"
+        cur.execute("DELETE FROM endpointattributes;")
+        print("The table  'endpointattributes' was dropped with great success")
+    else:
+        print("The table 'endpointattributes'  does not exist")
+
+    # Fechar conexão
+    cur.close()
+    conn.close()
+
+def check_create_table_endpointsImpactFactors(host, port, user, password, database):
+    # Parâmetros de conexão
+    db_params = {
+        'host': host,
+        'port': port,
+        'user': user,
+        'password': password,
+        'database': database  # Nome do banco de dados onde The table "endpoints" deve ser verificada/criada
+    }
+
+    # Conectar ao PostgreSQL
+    conn = psycopg2.connect(**db_params)
+    conn.autocommit = True
+
+    # Criar cursor
+    cur = conn.cursor()
+
+    # Verificar se The table "endpoints" existe
+    cur.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'endpointsimpactriskfactors')")
+    exists = cur.fetchone()[0]
+
+    if not exists:
+        # Criar The table "endpoints" se não existir
+        create_table_query = """
+        CREATE TABLE endpointsimpactriskfactors (
+            endpoint_id INTEGER,
+            endpoint_name TEXT,
+            risk_factor_term TEXT,
+            risk_factor_score TEXT,
+            PRIMARY KEY (endpoint_id,risk_factor_term) 
+        );
+        """
+        cur.execute(create_table_query)
+        print("The table 'endpointsimpactriskfactors' was successfully created")
+
+
+    else:
+        print("The table 'endpointsimpactriskfactors' already exists")
+
+    # Fechar conexão
+    cur.close()
+    conn.close()
+
+def insert_into_table_endpointsImpactFactors(json_data, host, port, user, password, database):
+    #print (data_string)
+    # Parâmetros de conexão
+    db_params = {
+        'host': host,
+        'port': port,
+        'user': user,
+        'password': password,
+        'database': database  # Nome do banco de dados onde The table "endpoints" está localizada
+    }
+    ct = datetime.datetime.now()
+    conn = psycopg2.connect(**db_params)
+    conn.autocommit = True
+
+    cur = conn.cursor()
+
+    try:
+        sql = """
+        INSERT INTO endpointsimpactriskfactors (endpoint_id, endpoint_name, risk_factor_term, risk_factor_score) VALUES (%(endpointId)s, %(endpointName)s, %(riskFactorTerm)s, %(riskFactorScore)s) 
+        """
+        inserted_records = 0
+        for record in json_data:
+            #print(record)
+            try:
+                cur.execute(sql, record)
+
+                inserted_records += 1
+
+            except psycopg2.Error as e:
+                print(str(ct) + "An error occurred while inserting data into the table 'endpointsimpactriskfactors':()", e)
+                # Printing the last executed query can help in debugging
+                print(cur.mogrify(sql, record))
+        print(str(ct) + f" - {inserted_records}  'endpointsimpactriskfactors' inserted successfull at {str(ct)}")
+    except Exception as e:
+        print(str(ct) + "An error occurred while inserting data into the table 'endpointsimpactriskfactors':()", e)
+
+    # Fechar conexão
+    cur.close()
+    conn.close()
+
+def clean_table_endpointsImpactFactors(host, port, user, password, database):
+    # Parâmetros de conexão
+    db_params = {
+        'host': host,
+        'port': port,
+        'user': user,
+        'password': password,
+        'database': database  # Nome do banco de dados onde The table "activevulnerabilities" está localizada
+    }
+
+    # Conectar ao PostgreSQL
+    conn = psycopg2.connect(**db_params)
+    conn.autocommit = True
+
+    # Criar cursor
+    cur = conn.cursor()
+
+    # Verificar se The table "activevulnerabilities" existe
+    cur.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'endpointsimpactriskfactors')")
+    exists = cur.fetchone()[0]
+
+    if exists:
+        # Limpar The table "activevulnerabilities"
+        cur.execute("DELETE FROM endpointsimpactriskfactors;")
+        print("The table  'endpointsimpactriskfactors' was dropped with great success")
+    else:
+        print("The table 'endpointsimpactriskfactors'  does not exist")
+
+    # Fechar conexão
+    cur.close()
+    conn.close()
+
+def check_create_table_endpointsExploitabilityRiskFactors(host, port, user, password, database):
+    # Parâmetros de conexão
+    db_params = {
+        'host': host,
+        'port': port,
+        'user': user,
+        'password': password,
+        'database': database  # Nome do banco de dados onde The table "endpoints" deve ser verificada/criada
+    }
+
+    # Conectar ao PostgreSQL
+    conn = psycopg2.connect(**db_params)
+    conn.autocommit = True
+
+    # Criar cursor
+    cur = conn.cursor()
+
+    # Verificar se The table "endpoints" existe
+    cur.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'endpointsexploitabilityriskfactors')")
+    exists = cur.fetchone()[0]
+
+    if not exists:
+        # Criar The table "endpoints" se não existir
+        create_table_query = """
+        CREATE TABLE endpointsexploitabilityriskfactors (
+            endpoint_id INTEGER,
+            endpoint_name TEXT,
+            risk_factor_term TEXT,
+            risk_factor_definition TEXT,
+            PRIMARY KEY (endpoint_id,risk_factor_term) 
+        );
+        """
+        cur.execute(create_table_query)
+        print("The table 'endpointsexploitabilityriskfactors' was successfully created")
+
+
+    else:
+        print("The table 'endpointsexploitabilityriskfactors' already exists")
+
+    # Fechar conexão
+    cur.close()
+    conn.close()
+
+def insert_into_table_endpointsExploitabilityRiskFactors(json_data, host, port, user, password, database):
+    #print (data_string)
+    # Parâmetros de conexão
+    db_params = {
+        'host': host,
+        'port': port,
+        'user': user,
+        'password': password,
+        'database': database  # Nome do banco de dados onde The table "endpoints" está localizada
+    }
+    ct = datetime.datetime.now()
+    conn = psycopg2.connect(**db_params)
+    conn.autocommit = True
+
+    cur = conn.cursor()
+
+    try:
+        sql = """
+        INSERT INTO endpointsexploitabilityriskfactors (endpoint_id, endpoint_name, risk_factor_term, risk_factor_definition) VALUES (%(endpointId)s, %(endpointName)s, %(riskFactorTerm)s, %(riskFactorDescription)s) 
+        """
+        inserted_records = 0
+        for record in json_data:
+            #print(record)
+            try:
+                cur.execute(sql, record)
+
+                inserted_records += 1
+
+            except psycopg2.Error as e:
+                print(str(ct) + "An error occurred while inserting data into the table 'endpointsexploitabilityriskfactors':()", e)
+                # Printing the last executed query can help in debugging
+                print(cur.mogrify(sql, record))
+        print(str(ct) + f" - {inserted_records}  'endpointsexploitabilityriskfactors' inserted successfull at {str(ct)}")
+    except Exception as e:
+        print(str(ct) + "An error occurred while inserting data into the table 'endpointsexploitabilityriskfactors':()", e)
+
+    # Fechar conexão
+    cur.close()
+    conn.close()
+
+def clean_table_endpointsExploitabilityRiskFactors(host, port, user, password, database):
+    # Parâmetros de conexão
+    db_params = {
+        'host': host,
+        'port': port,
+        'user': user,
+        'password': password,
+        'database': database  # Nome do banco de dados onde The table "activevulnerabilities" está localizada
+    }
+
+    # Conectar ao PostgreSQL
+    conn = psycopg2.connect(**db_params)
+    conn.autocommit = True
+
+    # Criar cursor
+    cur = conn.cursor()
+
+    # Verificar se The table "activevulnerabilities" existe
+    cur.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'endpointsexploitabilityriskfactors')")
+    exists = cur.fetchone()[0]
+
+    if exists:
+        # Limpar The table "activevulnerabilities"
+        cur.execute("DELETE FROM endpointsexploitabilityriskfactors;")
+        print("The table  'endpointsexploitabilityriskfactors' was dropped with great success")
+    else:
+        print("The table 'endpointsexploitabilityriskfactors'  does not exist")
 
     # Fechar conexão
     cur.close()

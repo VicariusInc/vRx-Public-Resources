@@ -183,7 +183,7 @@ def getAllEndpoits(fr0m,siz3,count,pbar):
     control_rate(20)
 
     try:
-        strEndpoints = assets.getEndpoints(apikey,urldashboard,fr0m,siz3)
+        strEndpoints,strEPStatus = assets.getEndpoints(apikey,urldashboard,fr0m,siz3)
     
     except Exception as e:
         strEndpoints = ""
@@ -193,7 +193,7 @@ def getAllEndpoits(fr0m,siz3,count,pbar):
 
         db.insert_into_table_endpoints(strEndpoints,host,port,user,password,database)
         writeReport(dictState['reportAssets'],strEndpoints)
-
+        db.insert_into_table_endpointsStatus(strEPStatus,host,port,user,password,database)
         pbar.update(siz3)
         
         #time.sleep(0.25)
@@ -322,9 +322,9 @@ def getAllEndpoitsExternalAttributes(fr0m,siz3,count,pbar):
         #writeReport(dictState['reportAssetsAttrributes'],head)
     
     control_rate()
-    strEndpointsAttributes = assets.getEndpoitsExternalAttributes(apikey,urldashboard,fr0m,siz3)
-    writeReport(dictState['reportAssetsAttrributes'],strEndpointsAttributes)
-    
+    strEndpointsAttributes,epAttributeOBJ = assets.getEndpoitsExternalAttributes(apikey,urldashboard,fr0m,siz3)
+    #writeReport(dictState['reportAssetsAttrributes'],strEndpointsAttributes)
+    db.insert_into_table_endpointsAttribute(epAttributeOBJ, host, port, user, password, database)
     pbar.update(siz3)
     #time.sleep(0.25)
 
@@ -347,10 +347,10 @@ def getAllEndpoitsExploitabilityRiskFactors(fr0m,siz3,count,pbar):
     #if fr0m == 0:
         #head = "id,asset,riskfactorterm,riskfactordescription\n"
         #writeReport(dictState['reportAssetsExploitabilityRiskFactors'],head)
-
-    strEndpointsAttributes = assets.getEndpointScoresExploitabilityRiskFactors(apikey,urldashboard,fr0m,siz3)
-    writeReport(dictState['reportAssetsExploitabilityRiskFactors'],strEndpointsAttributes)
     
+    strEndpointsExploitabilityRiskFactors,objEndpointsExploitabilityRiskFactors = assets.getEndpointScoresExploitabilityRiskFactors(apikey,urldashboard,fr0m,siz3)
+    #writeReport(dictState['reportAssetsExploitabilityRiskFactors'],strEndpointsAttributes)
+    db.insert_into_table_endpointsExploitabilityRiskFactors(objEndpointsExploitabilityRiskFactors, host, port, user, password, database)
     pbar.update(siz3)
     time.sleep(0.25)
 
@@ -371,9 +371,9 @@ def getAllEndpoitsScoresImpactRiskFactors(fr0m,siz3,count,pbar):
         #head = "id,asset,riskfactorterm,riskfactorscore\n"
        # writeReport(dictState['reportAssetsScoresImpactRiskFactors'],head)
 
-    strEndpointsAttributes = assets.getEndpointScoresImpactRiskFactors(apikey,urldashboard,fr0m,siz3)
-    writeReport(dictState['reportAssetsScoresImpactRiskFactors'],strEndpointsAttributes)
-    
+    strEndpointScoresImpactRiskFactors,objEndpointScoresImpactRiskFactors = assets.getEndpointScoresImpactRiskFactors(apikey,urldashboard,fr0m,siz3)
+    #writeReport(dictState['reportAssetsScoresImpactRiskFactors'],strEndpointsAttributes)
+    db.insert_into_table_endpointsImpactFactors(objEndpointScoresImpactRiskFactors, host, port, user, password, database)
     pbar.update(siz3)
     time.sleep(0.25)
 
@@ -527,7 +527,7 @@ def getAppsPerRisk(fr0m,siz3):
     db.check_create_table_apps(host, port, user, password, database)
     db.clean_table_apps(host, port, user, password, database)
 
-    lowRiskAppsCount,mediumRiskAppsCount,highRiskAppsCount = apprisk.getallAppwithPatch(apikey,urldashboard)
+    lowRiskAppsCount,mediumRiskAppsCount,highRiskAppsCount = apprisk.getallApp(apikey,urldashboard)
     lrac = lowRiskAppsCount
     mrac = mediumRiskAppsCount
     hrac = highRiskAppsCount
@@ -535,34 +535,34 @@ def getAppsPerRisk(fr0m,siz3):
     # Sort counts 
     while lowRiskAppsCount > 500:
         siz3 = 500
-        lowriskApps  = apprisk.getAppswithRiskandPatch(apikey,urldashboard,"Low",fr0m,siz3)
+        lowriskApps  = apprisk.getAppswithRisk(apikey,urldashboard,"Low",fr0m,siz3)
         db.insert_into_table_apps(lowriskApps, host, port, user, password, database)
         print("500 Low Risk Apps Inserted")
         lowRiskAppsCount = lowRiskAppsCount - siz3
     siz3 = lowRiskAppsCount
-    lowriskApps  = apprisk.getAppswithRiskandPatch(apikey,urldashboard,"Low",fr0m,siz3)
+    lowriskApps  = apprisk.getAppswithRisk(apikey,urldashboard,"Low",fr0m,siz3)
     db.insert_into_table_apps(lowriskApps, host, port, user, password, database)
     print(str(lowRiskAppsCount) + " Low Risk Apps Inserted")
 
     while mediumRiskAppsCount > 500:
         siz3 = 500
-        medriskApps  = apprisk.getAppswithRiskandPatch(apikey,urldashboard,"Medium",fr0m,siz3)
+        medriskApps  = apprisk.getAppswithRisk(apikey,urldashboard,"Medium",fr0m,siz3)
         print("500 Medium Risk Apps Inserted")
         db.insert_into_table_apps(medriskApps, host, port, user, password, database)
         mediumRiskAppsCount = mediumRiskAppsCount - 500
     siz3 = mediumRiskAppsCount
-    medriskApps  = apprisk.getAppswithRiskandPatch(apikey,urldashboard,"Medium",fr0m,siz3)
+    medriskApps  = apprisk.getAppswithRisk(apikey,urldashboard,"Medium",fr0m,siz3)
     db.insert_into_table_apps(medriskApps, host, port, user, password, database)
     print(str(mediumRiskAppsCount) + " Medium Risk Apps Inserted")
 
     while highRiskAppsCount > 500:
         siz3 = 500
-        highriskApps  = apprisk.getAppswithRiskandPatch(apikey,urldashboard,"High",fr0m,siz3)
+        highriskApps  = apprisk.getAppswithRisk(apikey,urldashboard,"High",fr0m,siz3)
         db.insert_into_table_apps(highriskApps, host, port, user, password, database)
         print("500 High Risk Apps Inserted")
         highRiskAppsCount = highRiskAppsCount - 500
     siz3 = highRiskAppsCount
-    highriskApps  = apprisk.getAppswithRiskandPatch(apikey,urldashboard,"High",fr0m,siz3)
+    highriskApps  = apprisk.getAppswithRisk(apikey,urldashboard,"High",fr0m,siz3)
     db.insert_into_table_apps(highriskApps, host, port, user, password, database)
     print(str(highRiskAppsCount) + " High Risk Apps Inserted")
 
@@ -648,6 +648,8 @@ def ReportEndpoints():
         print("Done!")
 
 def ReportEndpointsAttributes():
+    db.check_create_table_endpointsAttribute(host, port, user, password, database)
+    db.clean_table_endpointsAttribute(host, port, user, password, database)
     endpointattribcount = assets.getEndpoitsExternalAttributesCount(apikey,urldashboard)
     #print("EndpointsAttribs -> " + str(endpointattribcount))
     fr0m = 0       
@@ -662,6 +664,11 @@ def ReportEndpointsAttributes():
         print("Done!")
 
 def ReportEndpointScores():
+    db.check_create_table_endpointsExploitabilityRiskFactors(host, port, user, password, database)
+    db.check_create_table_endpointsImpactFactors(host, port, user, password, database)
+    db.clean_table_endpointsExploitabilityRiskFactors(host, port, user, password, database)
+    db.clean_table_endpointsImpactFactors(host, port, user, password, database)
+    
     endpointcount = assets.getCountEndpoints(apikey,urldashboard)
     print("Endpoints -> " + str(endpointcount))
     fr0m = 0       
@@ -1023,7 +1030,9 @@ def backupMetabaseTemplate(host,port):
 
 def metabaseTempalateReplace(host,port,user,password,tools):
     import optionalDBConnectors as optionalDB
+    print("Dropping DB")
     optionalDB.drop_metabase_db(host,port,user,password)
+    print("configuring DB")
     configoptionalTools(host, port, user, password, tools)
 
 
@@ -1036,13 +1045,16 @@ def main():
     lastrun = dictState['vRxLastRun']
     vRxSetup = dictState['vRxSetup']
     print('Last run: ' + str(lastrun))
+    print('vRxReportsSetup: ' + str(vRxSetup))
     if args.resetstate:
         dbreset()
         resetState()
         exit()
     if args.metabaseTempalateReplace:
+        print("Replacing Metabase Template ")
         metabaseTempalateReplace(host, port, user, password, tools)
-
+        print("Metabase Template is up to date ")
+        exit()
     if vRxSetup == 0:
         now = datetime.now()
         m6 = now - relativedelta(months=6)
@@ -1108,6 +1120,7 @@ def main():
         state.setState(dictState)
     else:
         startTime = datetime.now()
+
         print("Script start time: " + str(startTime))
         if args.allreports:
             
@@ -1162,8 +1175,8 @@ def main():
             
         elif args.assetsreport:
             ReportEndpoints()
-            #ReportEndpointsAttributes()
-            #ReportEndpointScores()        
+            ReportEndpointsAttributes()
+            ReportEndpointScores()        
             #ReportGroupsAtrributesTags()
             ReportGroupsSearchs()
 

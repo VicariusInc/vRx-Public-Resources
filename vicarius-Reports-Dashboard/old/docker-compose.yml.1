@@ -1,0 +1,64 @@
+version: '3.7'
+
+services:
+
+  appdb:
+    image: 127.0.0.1:5000/vrx-reports-appdb:latest
+    restart: always
+
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB_FILE: /run/secrets/postgres_db
+      POSTGRES_USER_FILE: /run/secrets/postgres_user
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - vicarius-network
+    secrets:
+      - postgres_db
+      - postgres_user
+      - postgres_password
+      
+  app:
+    image: 127.0.0.1:5000/vrx-reports-app:latest
+    restart: always
+
+    volumes:
+      - ./app/reports:/usr/src/app/reports
+      - ./app/logs:/var/log
+      - ./app/scripts:/usr/src/app/scripts
+    networks:
+      - vicarius-network
+    secrets:
+      - api_key
+      - dashboard_id
+      - postgres_db
+      - postgres_user
+      - postgres_password
+      - optional_tools
+
+
+
+volumes:
+  postgres-data:
+
+networks:
+  vicarius-network:
+    attachable: true
+
+secrets:
+  api_key:
+    external: true
+  dashboard_id:
+    external: true
+  postgres_db:
+    external: true
+  postgres_user:
+    external: true
+  postgres_password:
+    external: true
+  optional_tools:
+    external: true
+    

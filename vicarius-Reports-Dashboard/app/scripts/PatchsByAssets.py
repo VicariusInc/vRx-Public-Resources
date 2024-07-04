@@ -129,6 +129,11 @@ def getEndpointsPatchs(apikey,urldashboard,fr0m,siz3,endpointName,endpointSO,end
         else:
             patchReleaseDates = None
 
+        if patchReleaseDates == None:
+            now = datetime.now()
+            patchReleaseDates = now
+
+
         #print(sensitivityLevelRanks + "," +  sensitivityLevelNames + "," + patchDescriptionsexternalReferenceIds + "," + patchDescriptions)
         #strPatchEndpoints += ("\"" + endpointName + "\",\"" + endpointSO + "\",\"" + i['aggregationId'] + "\",\"" + sensitivityLevelRanks + "\",\"" +  sensitivityLevelNames + "\",\"" + patchDescriptions + "\",\"" + externalReferenceSourceIds + "\"\n")
         #Asset,SO,PatchName,SeverityLevel,SeverityName,Description,PatchID\
