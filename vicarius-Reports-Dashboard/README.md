@@ -134,7 +134,6 @@ tail -n 10 -f app/logs/initialsync.log
 
 * * Use ctrl-c to exit the log view. 
 
-
 Metabase will install with Traefik to facilitate SSL/TLS connections. 
 
 ## HTTPS is required to access the dashboard
@@ -307,6 +306,3 @@ sudo docker service rm vrx-reports-stack_web
  ```
 
 Now Follow the steps to setup ![Metabase](## Metabase)
-
-
-
