@@ -12,6 +12,7 @@ services:
       - ../../app/scripts:/usr/src/app/scripts
       - ../../app/reports:/usr/src/app/reports
       - ../../app/logs:/var/log
+      - /etc/localtime:/etc/localtime:ro
     secrets:
       - api_key
       - dashboard_id

@@ -14,6 +14,7 @@ services:
       - ./config/conf/:/etc/traefik/conf/
       - ./config/certs/:/etc/traefik/certs/
       - ./config/logs/:/var/log/traefik/
+      - /etc/localtime:/etc/localtime:ro
     # -- (Optional) When using Cloudflare as Cert Resolver
     # environment:
     #   - CF_DNS_API_TOKEN=your-cloudflare-api-token

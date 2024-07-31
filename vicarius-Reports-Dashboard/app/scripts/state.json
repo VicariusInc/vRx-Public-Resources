@@ -23,7 +23,7 @@
   "reporIncidentEventVulnerabilities": "/usr/src/app/reports/EndpointIncidentesVulnerabilities.csv",
   "reportEndpointGroups": "/usr/src/app/reports/EndpointsGroup.csv",
   "lastIncidentEventVulnerabilities": 0,
-  "vRxReportsVersion": "3.5",
+  "vRxReportsVersion": "4.0",
   "vRxSetup": 0,
   "vRxLastRun": "2019-07-02 15:00:00"
 }

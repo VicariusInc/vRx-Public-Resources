@@ -2,6 +2,7 @@
 import requests
 import json
 from datetime import datetime
+import time
 
 def getCountEndpoints(apikey,urldashboard):
 
@@ -37,10 +38,14 @@ def getEndpoints(apikey,urldashboard,fr0m,siz3):
         'from': fr0m,
         'size': siz3,
     }
-
+    print("gettingEndpoints -> Endpoints.py")
     try:
         response = requests.get(urldashboard + '/vicarius-external-data-api/endpoint/search', params=params, headers=headers)
-        parsed = json.loads(response.text)        
+        parsed = json.loads(response.text)    
+        if response.status_code == 429:
+            print("API Rate Limit exceeded ... Waiting and Trying again")
+            time.sleep(60)
+            getEndpoints(apikey,urldashboard,fr0m,siz3)
         
     except:
         print("something is wrong, will try again....")
@@ -91,6 +96,10 @@ def getEndpoitsExternalAttributesCount(apikey,urldashboard):
 
     try:
         response = requests.get(urldashboard + '/vicarius-external-data-api/endpointAttributes/search', params=params, headers=headers)
+        if response.status_code == 429:
+            print("API Rate Limit exceeded ... Waiting and Trying again")
+            time.sleep(60)
+            getEndpoitsExternalAttributesCount(apikey,urldashboard)
         parsed = json.loads(response.text)
         responsecount = parsed['serverResponseCount']
         
@@ -113,6 +122,10 @@ def getEndpoitsExternalAttributes(apikey,urldashboard,fr0m,siz3):
 
     try:
         response = requests.get(urldashboard + '/vicarius-external-data-api/endpointAttributes/search', params=params, headers=headers)
+        if response.status_code == 429:
+            print("API Rate Limit exceeded ... Waiting and Trying again")
+            time.sleep(60)
+            getEndpoitsExternalAttributes(apikey,urldashboard,fr0m,siz3)
         parsed = json.loads(response.text)
         
     except:
@@ -160,6 +173,10 @@ def getEndpointScoresExploitabilityRiskFactors(apikey,urldashboard,fr0m,siz3):
 
     try:
         response = requests.get(urldashboard + '/vicarius-external-data-api/endpoint/search', params=params, headers=headers)
+        if response.status_code == 429:
+            print("API Rate Limit exceeded ... Waiting and Trying again")
+            time.sleep(60)
+            getEndpointScoresExploitabilityRiskFactors(apikey,urldashboard,fr0m,siz3)
         parsed = json.loads(response.text)
         
     except:
@@ -199,6 +216,10 @@ def getEndpointScoresImpactRiskFactors(apikey,urldashboard,fr0m,siz3):
 
     try:
         response = requests.get(urldashboard + '/vicarius-external-data-api/endpoint/search', params=params, headers=headers)
+        if response.status_code == 429:
+            print("API Rate Limit exceeded ... Waiting and Trying again")
+            time.sleep(60)
+            getEndpointScoresImpactRiskFactors(apikey,urldashboard,fr0m,siz3)
         parsed = json.loads(response.text)
         
     except:

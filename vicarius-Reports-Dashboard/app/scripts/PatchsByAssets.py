@@ -1,6 +1,7 @@
 import requests
 import json
 from datetime import datetime
+import time
 
 def getCountEndpointsPatchs(apikey,urldashboard,endpointHash):
 
@@ -24,6 +25,10 @@ def getCountEndpointsPatchs(apikey,urldashboard,endpointHash):
 
     try:
         response = requests.get(urldashboard + '/vicarius-external-data-api/aggregation/searchGroup?', params=params, headers=headers)
+        if response.status_code == 429:
+            print("API Rate Limit exceeded ... Waiting and Trying again")
+            time.sleep(60)
+            getCountEndpointsPatchs(apikey,urldashboard,endpointHash)
         jsonresponse = json.loads(response.text)
         responsecount = jsonresponse['serverResponseCount']
 
@@ -54,6 +59,10 @@ def getCountEndpointsPatchsApps(apikey,urldashboard,endpointHash):
 
     try:
         response = requests.get(urldashboard + '/vicarius-external-data-api/aggregation/searchGroup?', params=params, headers=headers)
+        if response.status_code == 429:
+            print("API Rate Limit exceeded ... Waiting and Trying again")
+            time.sleep(60)
+            getCountEndpointsPatchsApps(apikey,urldashboard,endpointHash)
         jsonresponse = json.loads(response.text)
         responsecount = jsonresponse['serverResponseCount']
 
@@ -86,6 +95,10 @@ def getEndpointsPatchs(apikey,urldashboard,fr0m,siz3,endpointName,endpointSO,end
 
     try:
         response = requests.get(urldashboard + '/vicarius-external-data-api/aggregation/searchGroup?', params=params, headers=headers)
+        if response.status_code == 429:
+            print("API Rate Limit exceeded ... Waiting and Trying again")
+            time.sleep(60)
+            getEndpointsPatchs(apikey,urldashboard,fr0m,siz3,endpointName,endpointSO,endpointHash)
         parsed = json.loads(response.text)
           
     except:

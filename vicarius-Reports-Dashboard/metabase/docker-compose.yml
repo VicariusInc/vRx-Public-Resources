@@ -7,6 +7,7 @@ services:
     hostname: metabase
     volumes:
       - /mnt/metabase:/metabase-data
+      - /etc/localtime:/etc/localtime:ro
 #      - ./plugins:/app/plugins
 #    ports:
 #      - "4000:3000"
@@ -20,7 +21,7 @@ services:
     labels:
 #      - "traefik.enabled=true"
       - "traefik.http.routers.metabase.entrypoints=web,websecure"
-      - "traefik.http.routers.metabase.rule=Host(`<Your Hostname>`)"
+      - "traefik.http.routers.metabase.rule=Host(`ec2-52-91-103-153.compute-1.amazonaws.com`)"
       - "traefik.http.routers.metabase.tls=true"
       - "traefik.http.routers.metabase.tls.certresolver=prod"
 

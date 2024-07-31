@@ -15,9 +15,14 @@ RUN apt-get -y install postgresql-client-16
 COPY . .
 
 # Schedule your script using cron
-COPY crontab /etc/cron.d/my-crontab
-RUN chmod 0644 /etc/cron.d/my-crontab
-RUN crontab /etc/cron.d/my-crontab
+#COPY crontab /etc/cron.d/my-crontab
+#RUN chmod 0644 /etc/cron.d/my-crontab
+#RUN crontab /etc/cron.d/my-crontab
+#COPY initcron /etc/cron.d/initcron
+#RUN chmod 0644 /etc/cron.d/initcron
+#RUN crontab /etc/cron.d/initcron
+
+
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh

@@ -10,6 +10,7 @@ import numpy as np
 import os 
 import shutil
 import gc
+from crontab import CronTab
 
 
 
@@ -88,7 +89,11 @@ parser.add_argument('--metabaseTempalateReplace', dest='metabaseTempalateReplace
 parser.add_argument('--createMBUser', dest='createMBUser', action='store_true')
 parser.add_argument('-sd', '--start-date', dest='start_date', type=str, help='Start date for the report in YYYY-MM-DD format', default=None)
 parser.add_argument('-ed', '--end-date', dest='end_date', type=str, help='End date for the report in YYYY-MM-DD format', default=None)
-parser.add_argument('--version', action='version', version='1.0')
+parser.add_argument('--version', action='version', version='4.0')
+parser.add_argument('--refreshTables', dest='refreshTables', action='store_true', help='refreshTables')
+parser.add_argument('--difTables', dest='difTables', action='store_true', help='difTables')
+
+
 args = parser.parse_args()
 
 # Get the Credentials
@@ -139,8 +144,8 @@ else:
 #Get the Stats and Reports Names
 
 def getAllEndpoitsTasks(fr0m,siz3,maxDate,minDate):
-    print(minDate)
-    print(maxDate)
+    #print(minDate)
+    #print(maxDate)
     hmindate = datetime.fromtimestamp(int(minDate) / 1000).isoformat()
     hmaxdate = datetime.fromtimestamp(int(maxDate) / 1000).isoformat()
     print("minDate->" + hmindate)
@@ -158,41 +163,50 @@ def getAllEndpoitsTasks(fr0m,siz3,maxDate,minDate):
             tasks_list,lastdate = tasks.getTasksEndopintsEvents(apikey,urldashboard,fr0m,siz3,maxDate,minDate)
         except Exception as e:
             #print("lastdate= " + str(lastdate))
+            print("line 165")
             print (f"An exception occurred: {e}")
-            print(tasks_list,lastdate)
+            print(tasks_list)
+            print(lastdate)
+            
             tasks_list = ""
             #maxDate = str(lastdate)
             
+    try:
+        if tasks_list == 0:
+            print("No More Events")
 
-    if len(tasks_list) > 0:
-        #writeReport(dictState['reportNameEventsTasks'],strTasks)
-        
-        db.insert_into_table_tasks(tasks_list, host, port, user, password, database)
-        
-        maxDate = str(lastdate)
+        elif len(tasks_list) > 0:
+            #writeReport(dictState['reportNameEventsTasks'],strTasks)
+            
+            db.insert_into_table_tasks(tasks_list, host, port, user, password, database)
+            
+            maxDate = str(lastdate)
 
-        #dictState.update({'lastEndpointsEventTask': lastdate})
-        
-        #state.setState(dictState)
+            #dictState.update({'lastEndpointsEventTask': lastdate})
+            
+            #state.setState(dictState)
 
-        getAllEndpoitsTasks(fr0m,siz3,maxDate,minDate)
-    else:
-        print("No More Events")
+            getAllEndpoitsTasks(fr0m,siz3,maxDate,minDate)
+        else:
+            print("No More Events")
+    except:
+        print("Cannot determine task_list value")
       
 def getAllEndpoits(fr0m,siz3,count,pbar):
     control_rate(20)
-
     try:
         strEndpoints,strEPStatus = assets.getEndpoints(apikey,urldashboard,fr0m,siz3)
-    
+        print("endpoints returned")
     except Exception as e:
         strEndpoints = ""
         print (f"An exception occurred: {e}")
-    
+    #print(len(strEndpoints))
+    #print(len(strEPStatus))
     if len(strEndpoints) > 0:
-
+        print("Adding Endpoints Table")
         db.insert_into_table_endpoints(strEndpoints,host,port,user,password,database)
         writeReport(dictState['reportAssets'],strEndpoints)
+        print("Adding Endpoints Status Table")
         db.insert_into_table_endpointsStatus(strEPStatus,host,port,user,password,database)
         pbar.update(siz3)
         
@@ -205,7 +219,6 @@ def getAllEndpoits(fr0m,siz3,count,pbar):
         state.setState(dictState)
         control_rate(20)
         getAllEndpoits(fr0m,siz3,count,pbar)
-
     else:
         pbar.update(siz3)
         time.sleep(0.25)
@@ -403,10 +416,10 @@ def getAllIncidentEventVulnerabilities(fr0m,siz3,incidenttype,minDate,maxDate):
    
     print(len(jresponse))
     if jresponse is None:
-        print("jresponse é None, tentando novamente em 10 segundos...")
-        time.sleep(10)
+        print("jresponse is none, trying again...")
+        time.sleep(60)
         getAllIncidentEventVulnerabilities(fr0m,siz3,incidenttype,minDate,maxDate)
-        
+
     elif len(jresponse['serverResponseObject']) > 0:
 
         strEventsVuln,minDate = incidents.parseIncidentEventsbyType(jresponse)
@@ -632,7 +645,6 @@ def ReportEndpoints():
     writeReport(dictState['reportAssets'],head)
     
     control_rate(20)
-    
     endpointcount = assets.getCountEndpoints(apikey,urldashboard)
     print("Endpoints -> " + str(endpointcount))
    
@@ -641,9 +653,10 @@ def ReportEndpoints():
     if fr0m < endpointcount:
         deltacount = endpointcount - fr0m
         with tqdm(total=deltacount,desc="Endpoints") as pbar:
-
             control_rate(20)
+            print("ReportEP -> getallEnpoints")
             getAllEndpoits(fr0m,500,endpointcount,pbar)
+            print("ReportEP -> getallEnpoints -> Finished")
     else:
         print("Done!")
 
@@ -702,7 +715,9 @@ def ReportIncident(start_date=None, end_date=None):
                 control_rate(20)
                 getAllIncidentEventVulnerabilities(0, 500, incident_type, str(current_min_date), str(current_max_date))
             except Exception as e:
+                print("Incident Error 1")
                 print(f"Error processing incidents: {e}")
+                print
             current_min_date = current_max_date
 
     def process_all_at_once(minDate, maxDate, db, incident_type):
@@ -710,6 +725,7 @@ def ReportIncident(start_date=None, end_date=None):
             control_rate(20)
             getAllIncidentEventVulnerabilities(0, 500, incident_type, str(minDate), str(maxDate))
         except Exception as e:
+            print("Incident Error 2")
             print(f"Error processing incidents: {e}")
 
     # Ensure the incident table exists in the database
@@ -833,6 +849,7 @@ def SearchGroupsbyEndpoint(endpoint,dfg):
     return my_string
 
 def getAllEndpointsVulnerabilities(fr0m,siz3,minDate,maxDate,endpointName,endpointHash):
+    count = 0 
 
     try:
         control_rate()
@@ -845,9 +862,10 @@ def getAllEndpointsVulnerabilities(fr0m,siz3,minDate,maxDate,endpointName,endpoi
             #print (strVulnerabilities)
             #print (strVulnerabilities)
             #writeReport(dictState['reportVulnerabilities'],strVulnerabilities)
-
+            print("AssetName: " + endpointName)
             db.insert_into_table_activevulnerabilities(strVulnerabilities, host, port, user, password, database)
-
+            #fr0m += siz3
+            jresponseCount = len(strVulnerabilities)
             if server_response_count >= siz3:
                 getAllEndpointsVulnerabilities(fr0m, siz3, minDate, maxDate, endpointName, endpointHash)
 
@@ -956,9 +974,14 @@ def resetState():
     state.setState(dictState)
     print("Done!")
     """
-    os.remove("/usr/src/app/reports/state.json")
-    os.remove("/usr/src/app/reports/Endpoints.csv")
-    os.remove("/usr/src/app/reports/EndpointsGroup.csv")
+    try:
+        os.remove("/usr/src/app/reports/state.json")
+        os.remove("/usr/src/app/reports/Endpoints.csv")
+        os.remove("/usr/src/app/reports/EndpointsGroup.csv")
+        os.remove("/usr/src/app/logs/crontab.log.old")
+        os.rename("/usr/src/app/logs/crontab.log", "/usr/src/app/logs/crontab.log.old")
+    except:
+        print("unable to remove a file")
 
 def updateState():
     lastEndpointsEventTask = cd.getLastEndpointsEventTask ()
@@ -1035,6 +1058,53 @@ def metabaseTempalateReplace(host,port,user,password,tools):
     print("configuring DB")
     configoptionalTools(host, port, user, password, tools)
 
+def removeCronJobs():
+    cron = CronTab(user=True)  # Use 'user=True' for the current user or specify a username
+
+    # Define the commands of the cron jobs you want to remove
+    command_to_remove_1 = 'cd /usr/src/app && /usr/local/bin/python /usr/src/app/scripts/VickyTopiaReportCLI.py --refreshTables >> /var/log/refreshTables.log 2>&1'
+    command_to_remove_2 = 'cd /usr/src/app && /usr/local/bin/python /usr/src/app/scripts/VickyTopiaReportCLI.py --difTables >> /var/log/difTables.log 2>&1'
+    command_to_remove_3 = 'cd /usr/src/app && /usr/local/bin/python /usr/src/app/scripts/VickyTopiaReportCLI.py --allreports >> /var/log/crontab.log 2>&1'
+    # Remove the first cron job
+    for job in cron:
+        if job.command == command_to_remove_1:
+            cron.remove(job)
+            print(f'Removed job: {job}')
+
+    # Remove the second cron job
+    for job in cron:
+        if job.command == command_to_remove_2:
+            cron.remove(job)
+            print(f'Removed job: {job}')
+
+    # Write the changes to the crontab
+    cron.write()
+
+    print("Cron jobs removed.")
+
+def createCronJobs():
+    #Create the reoccuring Cron job
+    cron = CronTab(user=True)
+    # Create the first cron job
+    job1 = cron.new(command='cd /usr/src/app && /usr/local/bin/python /usr/src/app/scripts/VickyTopiaReportCLI.py --refreshTables >> /var/log/refreshTables.log 2>&1', comment='4 hour refreshTables job')
+    job1.setall('0 */4 * * *')  # Set to run every 4 hours
+
+    # Create the second cron job
+    job2 = cron.new(command='cd /usr/src/app && /usr/local/bin/python /usr/src/app/scripts/VickyTopiaReportCLI.py --difTables >> /var/log/difTables.log 2>&1', comment='4 hour difTables job')
+    job2.setall('0 2-22/4 * * *')  # Set to run at 0 minutes past every 4th hour from 2 AM to 10 PM
+
+    # Write the jobs to the cron tab
+    cron.write()
+    print("Cron job created:")
+
+def listCronJobs():
+    # Create a new cron object
+    cron = CronTab(user=True)  # Use 'user=True' for the current user or specify a username
+
+    # Iterate through the cron jobs and print them
+    print("Listing all cron jobs:")
+    for job in cron:
+        print(job)
 
 def main():
     args.dashboard
@@ -1056,6 +1126,7 @@ def main():
         print("Metabase Template is up to date ")
         exit()
     if vRxSetup == 0:
+        #removeCronJobs()
         now = datetime.now()
         m6 = now - relativedelta(months=6)
         date_str = m6.strftime("%Y-%m-%d")
@@ -1078,46 +1149,63 @@ def main():
         except Exception as e:           
             errorList.append("ReportEndpoints:" + e)
             print(str(e))
-
+        print("Completed Pulling endpoints")
         try:
             ReportGroupsSearchs()
         except Exception as e:
             errorList.append("ReportGroupsSearchs:" + str(e))
             print(str(e))
+        print("Completed Pulling Groups")
+        time.sleep(60)
         try:
             ReportTaskEvents(start_date, end_date)
+            
         except Exception as e:
             errorList.append("ReportTaskEvents:" + str(e))
             print(str(e))
-
+        print("Completed Pulling Tasks")
+        time.sleep(60)
         try:
             ReportVunerabilities()
         except Exception as e:
             errorList.append("ReportVunerabilities:" + str(e))
             print(str(e))
-        
+        print("Completed Pulling Vulnerabilites")
+        time.sleep(60)
         try:
             ReportEndpointPatchs()
         except Exception as e:
             errorList.append("ReportEndpointPatchs:" + str(e))
             print(str(e))
-
+        print("Completed Pulling Patches")
+        time.sleep(60)
         try:
             ReportIncident(start_date, end_date)
         except Exception as e:
             errorList.append("ReportIncident:" + str(e))
-            print(str(e))  
+            print(str(e)) 
+        print("Completed Pulling Incidents")
+        time.sleep(60) 
         try:
-            ReportHasPatchApps()          
+            ReportHasPatchApps()       
         except Exception as e:
             errorList.append("ReportHasPatchApps:" + str(e))
             print(str(e)) 
-
-        
+        print("Completed Pulling Apps")
         EndRun = datetime.now()
         print("Initial Run Completed: " + str(EndRun))
         dictState.update({'vRxSetup': 1})
         state.setState(dictState)
+        #Remove initial cron
+        try:
+            os.remove("/etc/cron.d/my-crontab")
+        except:
+            print("initcron does not exist")
+        print("creating cron job for updating database")
+        removeCronJobs()
+        createCronJobs()
+        listCronJobs()    
+
     else:
         startTime = datetime.now()
 
@@ -1142,34 +1230,39 @@ def main():
             except Exception as e:
                 errorList.append("ReportGroupsSearchs:" + str(e))
                 print(str(e))
+            time.sleep(60)
             try:
                 ReportTaskEvents()
             except Exception as e:
                 errorList.append("ReportTaskEvents:" + str(e))
                 print(str(e))
+            time.sleep(60)
 
             try:
                 ReportVunerabilities()
             except Exception as e:
                 errorList.append("ReportVunerabilities:" + str(e))
                 print(str(e))
-            
+            time.sleep(120)            
             try:
                 ReportEndpointPatchs()
             except Exception as e:
                 errorList.append("ReportEndpointPatchs:" + str(e))
                 print(str(e))
+            time.sleep(60)
 
             try:
                 ReportIncident()
             except Exception as e:
                 errorList.append("ReportIncident:" + str(e))
                 print(str(e))  
+            time.sleep(60)
             try:
                 ReportHasPatchApps()          
             except Exception as e:
                 errorList.append("ReportHasPatchApps:" + str(e))
                 print(str(e)) 
+            time.sleep(60)
             #cd.cleanData()
             #mt.get_mitigation_time()
             
@@ -1234,6 +1327,59 @@ def main():
             print("Creating Metabase User")
             print("Option is Disabled")
             optionalDB.create_user_metabase(host, port, user, password)
+        
+        elif args.refreshTables:
+            #Update Tables that get a full reset
+            db.check_create_database(host, port, user, password, database)
+            cd.remove_all_except()
+
+            try:
+                ReportEndpoints()
+            except Exception as e:           
+                errorList.append("ReportEndpoints:" + e)
+                print(str(e))
+            time.sleep(60)
+            try:
+                ReportGroupsSearchs()
+            except Exception as e:
+                errorList.append("ReportGroupsSearchs:" + str(e))
+                print(str(e))
+            time.sleep(60)
+            try:
+                ReportVunerabilities()
+            except Exception as e:
+                errorList.append("ReportVunerabilities:" + str(e))
+                print(str(e))
+            time.sleep(120)            
+            try:
+                ReportEndpointPatchs()
+            except Exception as e:
+                errorList.append("ReportEndpointPatchs:" + str(e))
+                print(str(e))
+            time.sleep(60)
+            try:
+                ReportHasPatchApps()          
+            except Exception as e:
+                errorList.append("ReportHasPatchApps:" + str(e))
+                print(str(e)) 
+            time.sleep(60)
+
+        elif args.difTables:
+            #Update Tables that only track the difference
+            ##Tasks
+            try:
+                ReportTaskEvents()
+            except Exception as e:
+                errorList.append("ReportTaskEvents:" + str(e))
+                print(str(e))
+            time.sleep(60)
+            ##INCIDENTS
+            try:
+                ReportIncident()
+            except Exception as e:
+                errorList.append("ReportIncident:" + str(e))
+                print(str(e)) 
+
         else:
             print("Select one report and try again!!!")
     

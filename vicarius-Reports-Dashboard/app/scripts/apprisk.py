@@ -2,6 +2,7 @@
 import requests
 import json
 from datetime import datetime
+import time
 #Get all apps per Risk score
 ## Report for getting Vulnerabilities with app risk level as a whole 
 ### AppName 
@@ -78,6 +79,10 @@ def getallApp(apikey,urldashboard):
     url = '/vicarius-external-data-api/aggregation/searchGroup?'
     response = requests.request("GET",urldashboard + url, params=params, headers=headers)
     jsonresponse = json.loads(response.text)
+    if response.status_code == 429:
+        print("API Rate Limit exceeded ... Waiting and Trying again")
+        time.sleep(60)
+        getallApp(apikey,urldashboard)
     #print(jsonresponse)
     sro = jsonresponse['serverResponseObject']
     #print(sro)

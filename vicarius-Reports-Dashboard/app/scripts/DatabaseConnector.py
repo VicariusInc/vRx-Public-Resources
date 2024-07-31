@@ -8,8 +8,9 @@ import urllib.parse
 import numpy as np
 
 def add_column_to_table(cur, table, columnName):
-    print(f"Check/Adding {columnName} column to {table} ")
-    cur.execute(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {columnName} TEXT;")
+    for col in columnName:
+        #print(f"Check/Adding {col} column to {table} ")
+        cur.execute(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {col};")
 
 def drop_view(cur, view):
     print(f"Dropping view {view}")
@@ -36,25 +37,39 @@ def create_table_views(host, port, user, password, database):
 
     #Create Endpoints_Groups_View
     Endpoint_Groups_View = """
-    CREATE OR REPLACE VIEW Endpoint_Groups_view AS SELECT
-        endpoints.endpoint_id,
-        endpoints.endpoint_name,
-        groupendpoints.groupname,
-        endpoints.endpoint_hash,
-        endpoints.alive,
-        endpoints.operating_system_name,
-        endpoints.agent_version,
-        endpoints.substatus,
-        endpoints.connectedbyProxy,
-        endpoints.tokenGenTime,
-        endpoints.deployed,
-        endpoints.last_connected,
-        endpoints.deploymentDate,
-        endpoints.LastContactDate
-    FROM
-        endpoints
-    JOIN
-        groupendpoints ON endpoints.endpoint_hash = groupendpoints.endpoint_hash;
+        CREATE OR REPLACE VIEW Endpoint_Groups_View AS
+        SELECT endpoints.endpoint_id,
+            endpoints.endpoint_name,
+            groupendpoints.groupname,
+            endpoints.endpoint_hash,
+            endpoints.alive,
+            endpoints.operating_system_name,
+            endpoints.agent_version,
+            endpoints.substatus,
+            endpoints.connectedbyproxy,
+            endpoints.tokengentime,
+            endpoints.deployed,
+            endpoints.last_connected,
+            endpoints.deploymentdate,
+            endpoints.lastcontactdate
+        FROM endpoints
+            JOIN groupendpoints ON endpoints.endpoint_hash = groupendpoints.endpoint_hash
+        UNION
+        SELECT endpoints.endpoint_id,
+            endpoints.endpoint_name,
+            'All Assets'::text AS groupname,
+            endpoints.endpoint_hash,
+            endpoints.alive,
+            endpoints.operating_system_name,
+            endpoints.agent_version,
+            endpoints.substatus,
+            endpoints.connectedbyproxy,
+            endpoints.tokengentime,
+            endpoints.deployed,
+            endpoints.last_connected,
+            endpoints.deploymentdate,
+            endpoints.lastcontactdate
+        FROM endpoints;
     """
     cur.execute(Endpoint_Groups_View)
     print("The view 'Endpoint_Groups_view' was successfully created")
@@ -132,6 +147,40 @@ def create_table_views(host, port, user, password, database):
         FROM
             activevulnerabilities;
     """
+    mitigation_detected_active_view = """
+        CREATE OR REPLACE VIEW mitigation_detection_active AS
+        SELECT
+            endpoint_id,
+            endpoint_hash,
+            asset,
+            cve,
+            CASE WHEN cvss <> 'Error' THEN cvss ELSE NULL END AS severity,
+            product AS product_name,
+            event_type,
+            patch_id,
+            to_timestamp(created_at_milli / 1000) AS created_at,
+            to_timestamp(updated_at_milli / 1000) AS updated_at
+        FROM
+            incident
+        WHERE
+            event_type IN ('MitigatedVulnerability', 'DetectedVulnerability')
+
+        UNION ALL        
+
+        SELECT
+            endpoint_id,
+            endpoint_hash,
+            asset,
+            cve,
+            sensitivity_level_name AS severity,
+            product_name,
+            'DetectedActive' AS event_type,  -- Assuming all rows in activevulnerabilities are active events
+            patchid AS patch_id,
+            created_at,  -- Assuming create_at is already in datetime format
+            updated_at   -- Assuming update_at is already in datetime format
+        FROM
+            activevulnerabilities;
+    """
     incidents_group_view = """
         CREATE OR REPLACE VIEW incidents_group_view AS
         Select
@@ -163,6 +212,7 @@ def create_table_views(host, port, user, password, database):
     cur.execute(mitigation_time_query)
     cur.execute(mitigation_performance_view)
     cur.execute(incidents_group_view)
+    cur.execute(mitigation_detected_active_view)
 
 def repair_table_incidents(host, port, user, password, database):
     db_params = {
@@ -176,10 +226,13 @@ def repair_table_incidents(host, port, user, password, database):
     conn.autocommit = True
     cur = conn.cursor()
     table = "incident"
-    columnName = "endpoint_hash"
-    columnName1 = "mitigated_event_detected_at"
+    columnName = [
+        "endpoint_hash text",
+        "mitigated_event_detected_at text"
+    ]
+
     add_column_to_table(cur,table,columnName)
-    add_column_to_table(cur,table,columnName1)
+    #add_column_to_table(cur,table,columnName1)
 
     views = ["incident_view", "mitigation_time_view", "mitigation_performance_view", "incidents_group_view"]
 
@@ -202,7 +255,13 @@ def repair_table_tasks(host, port, user, password, database):
     conn.autocommit = True
     cur = conn.cursor()
     table = "tasks"
-    columnName = "endpoint_hash"
+    columnName = [
+        'endpoint_hash TEXT',
+        'patch_name TEXT',
+        'patch_file_name TEXT',
+        'patch_package_file_name TEXT',
+        'patch_release_date BIGINT'     
+    ]
     add_column_to_table(cur,table,columnName)
     
     cur.close()
@@ -883,7 +942,10 @@ def clean_table_groupendpoints(host, port, user, password, database):
 
     #add column to groupendpoints
     table="groupendpoints"
-    column="endpoint_hash"
+    column = [
+        "endpoint_hash text"
+    ]
+    #column="endpoint_hash"
     add_column_to_table(cur,table,column)
     #cur.execute(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {column} TEXT;")
     # Fechar conexão
@@ -969,7 +1031,9 @@ def insert_into_table_incident(json_data, host, port, user, password, database):
     # Create cursor
     cur = conn.cursor()
     table = "incident"
-    columnNmae = "endpoint_hash"
+    columnNmae = [
+        "endpoint_hash text"
+    ]
     add_column_to_table(cur,table,columnNmae)
     # Insert data into the "incident" table
     try:
@@ -990,6 +1054,7 @@ def insert_into_table_incident(json_data, host, port, user, password, database):
                 # Printing the last executed query can help in debugging
                 print(cur.mogrify(sql, record))
         print(str(ct) + f" - {inserted_records}  'incidents' inserted successfull at {str(ct)}")
+        #print("Incidents Inserted")
     except Exception as e:
         print(str(ct) + "An error occurred while inserting data into the table 'incident':()", e)
 
@@ -1066,7 +1131,8 @@ def check_create_table_activevulnerabilities(host, port, user, password, databas
             vulnerability_v3_exploitability_level FLOAT,
             typecve TEXT,
             version TEXT,
-            subversion TEXT     )
+            subversion TEXT,
+            PRIMARY KEY (endpoint_hash,product_name,cve,version)     )
         """
         cur.execute(create_table_query)
                
@@ -1098,28 +1164,34 @@ def insert_into_table_activevulnerabilities(json_data, host, port, user, passwor
     cur = conn.cursor()
 
     # Insert data into the "activevulnerabilities" table
-    try:
-        sql = """
-        INSERT INTO activevulnerabilities (endpoint_id, asset, endpoint_hash, product_name, product_raw_entry_name, sensitivity_level_name, cve, vulid, patchid, patch_name, patch_release_date, patch_release_timestamp, created_at, updated_at, link, vulnerability_summary, vulnerability_v3_base_score, vulnerability_v3_exploitability_level, typecve, version, subversion) 
-        VALUES (%(endpointId)s, %(asset)s, %(endpointHash)s, %(productName)s, %(productRawEntryName)s, 
-        %(sensitivityLevelName)s, %(cve)s, %(vulid)s, %(patchid)s, %(patchName)s, %(patchReleaseDate)s, %(patchReleaseDateTimeStamp)s,
-        %(createAt)s, %(updateAt)s, %(link)s, %(vulnerabilitySummary)s, %(vulnerabilityV3BaseScore)s, 
-        %(vulnerabilityV3ExploitabilityLevel)s, %(typecve)s, %(version)s, %(subversion)s)
-        """
+    duplicates = []
+    
+    sql = """
+    INSERT INTO activevulnerabilities (endpoint_id, asset, endpoint_hash, product_name, product_raw_entry_name, sensitivity_level_name, cve, vulid, patchid, patch_name, patch_release_date, patch_release_timestamp, created_at, updated_at, link, vulnerability_summary, vulnerability_v3_base_score, vulnerability_v3_exploitability_level, typecve, version, subversion) 
+    VALUES (%(endpointId)s, %(asset)s, %(endpointHash)s, %(productName)s, %(productRawEntryName)s, 
+    %(sensitivityLevelName)s, %(cve)s, %(vulid)s, %(patchid)s, %(patchName)s, %(patchReleaseDate)s, %(patchReleaseDateTimeStamp)s,
+    %(createAt)s, %(updateAt)s, %(link)s, %(vulnerabilitySummary)s, %(vulnerabilityV3BaseScore)s, 
+    %(vulnerabilityV3ExploitabilityLevel)s, %(typecve)s, %(version)s, %(subversion)s)
+    """
 
-        for record in json_data:
-            #print (record)
+    for record in json_data:
+        #print (record)
+        try:
             cur.execute(sql, record)
-
-        print(f"{len (json_data)} records inserted into'activevulnerabilities' successfully!" + str(ct))
-
-    except psycopg2.Error as e:
-        print (sql, record)
-        print(str(ct) + "An error occurred while inserting data into the table 'activevulnerabilities':", e)
-        # Printing the last executed query can help in debugging
-        print(cur.mogrify(sql, record))
+            
+        except psycopg2.Error as e:
+            if "duplicate key value violates unique constraint" in str(e):
+                duplicates.append(record)
+            else:
+                print (sql, record)
+                print(str(ct) + "An error occurred while inserting data into the table 'activevulnerabilities':", e)
+                # Printing the last executed query can help in debugging
+                print(cur.mogrify(sql, record))
+    print(f"{len (json_data)} records inserted into'activevulnerabilities' successfully!" + str(ct))
+    
 
     # Close connection
+    print("Duplicate values not inserted: " + str(len(duplicates)))
     cur.close()
     conn.close()
 
@@ -1174,7 +1246,7 @@ def check_create_table_tasks(host, port, user, password, database):
     if not exists:
         create_table_query = """
         CREATE TABLE tasks (
-            id INT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+            id Serial,
             endpoint_id INTEGER,
             task_id INTEGER,
             automation_id INTEGER,
@@ -1185,6 +1257,10 @@ def check_create_table_tasks(host, port, user, password, database):
             publisher_name TEXT,
             path_or_product TEXT,
             path_or_product_desc TEXT,
+            patch_name TEXT,
+            patch_file_name TEXT,
+            patch_package_file_name TEXT,
+            patch_release_date Bigint,
             action_status TEXT,
             message_status TEXT,
             username TEXT,
@@ -1196,7 +1272,8 @@ def check_create_table_tasks(host, port, user, password, database):
             hcreateat TIMESTAMP,
             hupdateat TIMESTAMP,
             created_at BIGINT,
-            updated_at BIGINT
+            updated_at BIGINT,
+            PRIMARY Key (createatnano)
         );
         """
         cur.execute(create_table_query)
@@ -1224,18 +1301,23 @@ def insert_into_table_tasks(json_data, host, port, user, password, database):
     # Create cursor
     cur = conn.cursor()
     table = "tasks"
-    columnNmae = "endpoint_hash"
-    add_column_to_table(cur,table,columnNmae)
+    columnName = [
+        'endpoint_hash TEXT',
+        'patch_name TEXT',
+        'patch_file_name TEXT',
+        'patch_package_file_name TEXT',
+        'patch_release_date BIGINT'     
+    ]
+    add_column_to_table(cur,table,columnName)
 
     try:
         sqlquery = """
-        INSERT INTO tasks (endpoint_id, task_id, automation_id, automation_name, endpoint_hash, asset, task_type, publisher_name, path_or_product, path_or_product_desc, action_status, message_status, username, team, run_sequence, asset_status, createatnano, updateatnano, hcreateat, hupdateat, created_at, updated_at)
-        VALUES (%(endpointId)s, %(taskid)s, %(automationId)s, %(automationName)s, %(assetHash)s, %(asset)s, %(taskType)s, %(publisherName)s, %(pathproduct)s, %(pathproductdesc)s, %(actionStatus)s, %(messageStatus)s, %(username)s, %(orgTeam)s, %(runSequence)s, %(assetStatus)s, %(createAtNano)s, %(updateAtNano)s, %(hcreateAt)s, %(hupdateAt)s, %(createAt)s, %(updateAt)s)
-        """
+        INSERT INTO tasks (endpoint_id, task_id, automation_id, automation_name, endpoint_hash, asset, task_type, publisher_name, path_or_product, path_or_product_desc, patch_name, patch_file_name, patch_package_file_name, patch_release_date, action_status, message_status, username, team, run_sequence, asset_status, createatnano, updateatnano, hcreateat, hupdateat, created_at, updated_at)
+        VALUES (%(endpointId)s, %(taskid)s, %(automationId)s, %(automationName)s, %(assetHash)s, %(asset)s, %(taskType)s, %(publisherName)s, %(pathproduct)s, %(pathproductdesc)s, %(patchName)s, %(patchFileName)s, %(patchPackageFileName)s, %(patchReleaseDate)s, %(actionStatus)s, %(messageStatus)s, %(username)s, %(orgTeam)s, %(runSequence)s, %(assetStatus)s, %(createAtNano)s, %(updateAtNano)s, %(hcreateAt)s, %(hupdateAt)s, %(createAt)s, %(updateAt)s)        """
         for record in json_data:
             #print(record['assetHash'])
-            print(record)
-            print(sqlquery)
+            #print(record)
+            #print(sqlquery)
             cur.execute(sqlquery, record)
             
         print(str(ct) + "The data was inserted into the table 'tasks' with great success!")
@@ -1270,7 +1352,13 @@ def clean_table_tasks(host, port, user, password, database):
     else:
         print("The table 'tasks'  does not exist")
     table = "tasks"
-    columnName = "endpoint_hash"
+    columnName = [
+        'endpoint_hash TEXT',
+        'patch_name TEXT',
+        'patch_file_name TEXT',
+        'patch_package_file_name TEXT',
+        'patch_release_date BIGINT'     
+    ]
     add_column_to_table(cur,table,columnName)
 
     cur.close()
@@ -1383,7 +1471,9 @@ def clean_table_assetspatchs(host, port, user, password, database):
     else:
         print(str(ct) + "The table 'assetspatchs'  does not exist")
     table = "assetspatchs"
-    columnName = "endpoint_hash"
+    columnName = [
+        "endpoint_hash Text"
+    ]
     add_column_to_table(cur,table,columnName)
     cur.close()
     conn.close()
@@ -1897,7 +1987,7 @@ def drop_all_tables(host, port, user, password, database):
     conn = psycopg2.connect(**db_params)
     conn.autocommit = True
     cur = conn.cursor()
-    views = ["endpoint_groups_view","incident_view", "mitigation_time_view", "mitigation_performance_view", "incidents_group_view"]
+    views = ["endpoint_groups_view","incident_view", "mitigation_time_view", "mitigation_performance_view", "incidents_group_view","mitigation_detection_active"]
     for view in views:
         drop_view(cur, view)
     tables = ['incident','activevulnerabilities','tasks','assetspatchs','apps','endpoints','groupendpoints','xprotectevents','events']

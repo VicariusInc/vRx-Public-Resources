@@ -19,6 +19,7 @@ services:
 #      - "traefik.http.routers.metabase.tls.certresolver=prod"
     volumes:
       - postgres-data:/var/lib/postgresql/data
+      - /etc/localtime:/etc/localtime:ro
     networks:
       - vicarius-network
     secrets:
@@ -35,6 +36,7 @@ services:
       - ./app/reports:/usr/src/app/reports
       - ./app/logs:/var/log
       - ./app/scripts:/usr/src/app/scripts
+      - /etc/localtime:/etc/localtime:ro 
     networks:
       - vicarius-network
     secrets:
