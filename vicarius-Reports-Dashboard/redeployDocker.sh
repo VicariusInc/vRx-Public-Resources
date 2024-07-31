@@ -49,3 +49,23 @@ echo "Deploying Docker stack..."
 docker stack deploy -c docker-compose.yml vrx-reports-stack
 
 echo "Deployment completed."
+
+# Step 7: check for a successful first run 
+
+#echo "The first run must complete before deploying any optional tools"
+#echo "depending on the amount of data this can take some time" 
+##LOG_FILE="app/logs/crontab.log"
+#LINE_TO_CHECK="End of Run "
+#i=0
+#echo "Checking App first run"
+#while IFS= read -r line; do
+#  echo "Still running ..." 
+#  sleep 120
+#  if [[ "$line" == *"$LINE_TO_CHECK"* ]]; then
+#    echo "Found the line: $LINE_TO_CHECK"
+#    exit 0
+#  fi
+#done < "$LOG_FILE"
+
+#echo "Run Completed" 
+

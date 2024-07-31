@@ -4,3 +4,4 @@ tqdm
 psycopg2
 sqlalchemy
 numpy
+python-crontab

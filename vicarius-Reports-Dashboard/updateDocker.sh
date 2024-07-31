@@ -42,7 +42,7 @@ if docker volume ls -q | grep -w vrx-reports-stack_postgres-data > /dev/null; th
 else
     echo "Volume does not exist."
 fi
-
+sleep 10
 
 # Step 6: Deploy the Docker stack
 echo "Deploying Docker stack..."

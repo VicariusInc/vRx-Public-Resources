@@ -1,0 +1,33 @@
+version: '3.7'
+services:
+  traefik:
+    image: traefik:v3.0.1
+    ports:
+      - "80:80"
+      - "443:443"
+      # -- (Optional) Enable Dashboard, don't do in production
+      - "8080:8080"
+
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./config/traefik.yaml:/etc/traefik/traefik.yaml:ro
+      - ./config/conf/:/etc/traefik/conf/
+      - ./config/certs/:/etc/traefik/certs/
+      - ./config/logs/:/var/log/traefik/
+      - /etc/localtime:/etc/localtime:ro
+    # -- (Optional) When using Cloudflare as Cert Resolver
+    # environment:
+    #   - CF_DNS_API_TOKEN=your-cloudflare-api-token
+    # -- (Optional) When using a custom network
+    # networks:
+    #   - your-traefik-network
+    restart: unless-stopped
+    networks:
+      - vicarius-network
+networks:
+  vicarius-network:
+    driver: bridge
+    attachable: true
+#volumes:
+#  traefik-ssl-certs:
+#    driver: local

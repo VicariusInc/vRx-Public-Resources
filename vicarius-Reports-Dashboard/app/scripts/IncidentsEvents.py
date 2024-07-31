@@ -124,6 +124,11 @@ def getIncidentEventsbyType(apikey,urldashboard,fr0m,siz3,incidenttype,minDate,m
             time.sleep(5)
             attempts += 1        
     
+    if response.status_code == 429:
+        print("API Rate Limit exceeded ... Waiting and Trying again")
+        time.sleep(60)
+        getIncidentEventsbyType(apikey,urldashboard,fr0m,siz3,incidenttype,minDate,maxDate)
+        
     return jresponse
 
 def parseIncidentEventsbyType(jresponse):

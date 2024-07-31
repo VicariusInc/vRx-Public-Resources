@@ -2,6 +2,7 @@
 import requests
 import json
 from datetime import datetime
+import time
 
 def getCountEndpoints(apikey,urldashboard):
 
@@ -37,16 +38,21 @@ def getEndpoints(apikey,urldashboard,fr0m,siz3):
         'from': fr0m,
         'size': siz3,
     }
-
+    print("gettingEndpoints -> Endpoints.py")
     try:
         response = requests.get(urldashboard + '/vicarius-external-data-api/endpoint/search', params=params, headers=headers)
-        parsed = json.loads(response.text)        
+        parsed = json.loads(response.text)    
+        if response.status_code == 429:
+            print("API Rate Limit exceeded ... Waiting and Trying again")
+            time.sleep(60)
+            getEndpoints(apikey,urldashboard,fr0m,siz3)
         
     except:
         print("something is wrong, will try again....")
 
     strEndpoints = ""
-    
+    strEPStatus = ""
+    runtime = datetime.now()
     for i in parsed['serverResponseObject']:
         deployment_date = str(i['endpointCreatedAt'])
         last_connected = str((i['endpointUpdatedAt']))
@@ -72,8 +78,9 @@ def getEndpoints(apikey,urldashboard,fr0m,siz3):
             connectedbyProxy = ""
 
         strEndpoints += ("'" + str(i['endpointId']) + "','" + i['endpointName'] + "','" + i['endpointHash'] + "','" + str(alive) + "','" + operatingSystemName + "','" + agentVersion + "','" + substatus + "','" + str(connectedbyProxy) + "','" + tokenGenTime + "','" + deployment_date + "','" + last_connected + "','" + deploymentDate + "','" + LastContact + "'\n")
+        strEPStatus += ("'" + str(i['endpointId']) + "','" + i['endpointName'] + "','" + i['endpointHash'] + "','" + str(alive) + "','" + str(connectedbyProxy) + "','"  + LastContact + "','" + str(runtime) + "'\n")
     
-    return strEndpoints
+    return strEndpoints,strEPStatus
 
 def getEndpoitsExternalAttributesCount(apikey,urldashboard):
     
@@ -89,6 +96,10 @@ def getEndpoitsExternalAttributesCount(apikey,urldashboard):
 
     try:
         response = requests.get(urldashboard + '/vicarius-external-data-api/endpointAttributes/search', params=params, headers=headers)
+        if response.status_code == 429:
+            print("API Rate Limit exceeded ... Waiting and Trying again")
+            time.sleep(60)
+            getEndpoitsExternalAttributesCount(apikey,urldashboard)
         parsed = json.loads(response.text)
         responsecount = parsed['serverResponseCount']
         
@@ -111,6 +122,10 @@ def getEndpoitsExternalAttributes(apikey,urldashboard,fr0m,siz3):
 
     try:
         response = requests.get(urldashboard + '/vicarius-external-data-api/endpointAttributes/search', params=params, headers=headers)
+        if response.status_code == 429:
+            print("API Rate Limit exceeded ... Waiting and Trying again")
+            time.sleep(60)
+            getEndpoitsExternalAttributes(apikey,urldashboard,fr0m,siz3)
         parsed = json.loads(response.text)
         
     except:
@@ -119,19 +134,29 @@ def getEndpoitsExternalAttributes(apikey,urldashboard,fr0m,siz3):
     #print(json.dumps(parsed['serverResponseCount'],indent=2))
     #print(json.dumps(parsed['serverResponseObject'],indent=2))
     strEndpointsAttributes = ""
+    endpointsAttributesObj = []
     for i in parsed['serverResponseObject']:
         try:
             endpointId = i['endpointAttributesEndpoint']['endpointId']
             endpointName = i['endpointAttributesEndpoint']['endpointName']
+            endpointHash = i['endpointAttributesEndpoint']['endpointHash']
             value = (i['endpointAttributesAttribute']['attributeExternalId'])
             attrib = (i['endpointAttributesAttribute']['attributeAttributeSource']['attributeSourceName'])
             strEndpointsAttributes += (str(endpointId) + "," + endpointName + "," + attrib + "," + value + "\n")
             #print(attrib+":"+value)
+            epattriJson = {
+                "endpointId": endpointId,
+                "endpointName": endpointName,
+                "endpointHash": endpointHash,
+                "attrib": attrib,
+                "value": value
+            }
+            endpointsAttributesObj.append(epattriJson)
         except:
             print("error!! next")
 
     
-    return strEndpointsAttributes
+    return strEndpointsAttributes,endpointsAttributesObj
 
 def getEndpointScoresExploitabilityRiskFactors(apikey,urldashboard,fr0m,siz3):
 
@@ -148,12 +173,17 @@ def getEndpointScoresExploitabilityRiskFactors(apikey,urldashboard,fr0m,siz3):
 
     try:
         response = requests.get(urldashboard + '/vicarius-external-data-api/endpoint/search', params=params, headers=headers)
+        if response.status_code == 429:
+            print("API Rate Limit exceeded ... Waiting and Trying again")
+            time.sleep(60)
+            getEndpointScoresExploitabilityRiskFactors(apikey,urldashboard,fr0m,siz3)
         parsed = json.loads(response.text)
         
     except:
         print("something is wrong, will try again....")
 
     strEndpointsExploitabilityRiskFactors = ""
+    objEndpointsExploitabilityRiskFactors = []
     for i in parsed['serverResponseObject']:
         endpointId = i['endpointId']
         endpointName = i['endpointName']
@@ -162,8 +192,14 @@ def getEndpointScoresExploitabilityRiskFactors(apikey,urldashboard,fr0m,siz3):
             riskFactorTerm = j['riskFactorTerm']
             riskFactorDescription = j['riskFactorDescription']            
             strEndpointsExploitabilityRiskFactors += (str(endpointId) + "," + endpointName + "," + riskFactorTerm + "," + riskFactorDescription + "\n")
-        
-    return strEndpointsExploitabilityRiskFactors
+            epExploitRisk = {
+                "endpointId": endpointId,
+                "endpointName": endpointName,
+                "riskFactorTerm": riskFactorTerm,
+                "riskFactorDescription": riskFactorDescription,
+            }
+            objEndpointsExploitabilityRiskFactors.append(epExploitRisk)
+    return strEndpointsExploitabilityRiskFactors,objEndpointsExploitabilityRiskFactors
 
 def getEndpointScoresImpactRiskFactors(apikey,urldashboard,fr0m,siz3):
 
@@ -180,12 +216,17 @@ def getEndpointScoresImpactRiskFactors(apikey,urldashboard,fr0m,siz3):
 
     try:
         response = requests.get(urldashboard + '/vicarius-external-data-api/endpoint/search', params=params, headers=headers)
+        if response.status_code == 429:
+            print("API Rate Limit exceeded ... Waiting and Trying again")
+            time.sleep(60)
+            getEndpointScoresImpactRiskFactors(apikey,urldashboard,fr0m,siz3)
         parsed = json.loads(response.text)
         
     except:
         print("something is wrong, will try again....")
 
     strEndpointScoresImpactRiskFactors = ""
+    objEndpointScoresImpactRiskFactors = []
     for i in parsed['serverResponseObject']:
         endpointId = i['endpointId']
         endpointName = i['endpointName']
@@ -194,5 +235,11 @@ def getEndpointScoresImpactRiskFactors(apikey,urldashboard,fr0m,siz3):
             riskFactorTerm = j['riskFactorTerm']
             riskFactorScore = j['riskFactorScore']            
             strEndpointScoresImpactRiskFactors += (str(endpointId) + "," + endpointName + "," + riskFactorTerm + "," + str(riskFactorScore) + "\n")
-
-    return strEndpointScoresImpactRiskFactors
+            epimpactRiskfactors= {
+                "endpointId": endpointId,
+                "endpointName": endpointName,
+                "riskFactorTerm": riskFactorTerm,
+                "riskFactorScore": riskFactorScore
+            }
+            objEndpointScoresImpactRiskFactors.append(epimpactRiskfactors)
+    return strEndpointScoresImpactRiskFactors,objEndpointScoresImpactRiskFactors

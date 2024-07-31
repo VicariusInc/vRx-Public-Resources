@@ -16,7 +16,8 @@ fi
 sleep 20
 
 #/usr/local/bin/python /usr/src/app/scripts/VickyTopiaReportCLI.py --allreports  >> /var/log/crontab.log 2>&1
-
+#Initial Pull 
+/usr/local/bin/python /usr/src/app/scripts/VickyTopiaReportCLI.py --allreports >> /var/log/initialsync.log 2>&1
 
 # Start cron in foreground
 cron -f

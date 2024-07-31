@@ -70,11 +70,19 @@ def getEndpointVulnerabilities(apikey,urldashboard,fr0m,siz3,minDate,maxDate,end
     try:
         time.sleep(0.5)
         response = requests.get(urldashboard + '/vicarius-external-data-api/organizationEndpointVulnerabilities/search', params=params, headers=headers)
+        if response.status_code == 429:
+            print("API Rate Limit exceeded ... Waiting and Trying again")
+            time.sleep(60)
+            getEndpointVulnerabilities(apikey,urldashboard,fr0m,siz3,minDate,maxDate,endpointName,endpointHash)
         jresponse = json.loads(response.text)
   
     except:
         print("something is wrong, will try again....")
         time.sleep(30)
+        getEndpointVulnerabilities(apikey,urldashboard,fr0m,siz3,minDate,maxDate,endpointName,endpointHash)
+    if response.status_code == 429:
+        print("API Rate Limit exceeded ... Waiting and Trying again")
+        time.sleep(60)
         getEndpointVulnerabilities(apikey,urldashboard,fr0m,siz3,minDate,maxDate,endpointName,endpointHash)
 
     return jresponse
@@ -82,7 +90,6 @@ def getEndpointVulnerabilities(apikey,urldashboard,fr0m,siz3,minDate,maxDate,end
 def parseEndpointVulnerabilities(apikey,urldashboard,jresponse): #endpointGroups):
     
     vulns_list = []
-
 
     for i in jresponse['serverResponseObject']:
         cve = i['organizationEndpointVulnerabilitiesVulnerability']['vulnerabilityExternalReference']['externalReferenceExternalId']
@@ -159,7 +166,12 @@ def parseEndpointVulnerabilities(apikey,urldashboard,jresponse): #endpointGroups
 
         hpatchReleaseDate = safe_convert_to_datetime(patchReleaseDate)
 
-        
+        #if productRawEntryName == "Mozilla Foundation_Firefox 17.0.11 ESR_17.0.11_x86_8503_":
+        #    if i['organizationEndpointVulnerabilitiesPatch']['patchName'] != "":
+        #        print("Found Firefox")
+        #        unjson = json.dumps(i)
+        #       print(unjson)
+
         #age = get_days_diff_from_timestamp(createAttimemille)
 
         vulnerability_dict = {

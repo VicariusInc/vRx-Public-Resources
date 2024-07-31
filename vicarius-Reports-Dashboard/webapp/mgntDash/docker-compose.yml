@@ -1,0 +1,42 @@
+  
+version: '3.8'
+
+services:
+
+  web:
+    image: 127.0.0.1:5000/vrx-reports-web:latest
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+      - ../../app/scripts:/usr/src/app/scripts
+      - ../../app/reports:/usr/src/app/reports
+      - ../../app/logs:/var/log
+      - /etc/localtime:/etc/localtime:ro
+    secrets:
+      - api_key
+      - dashboard_id
+      - postgres_db
+      - postgres_user
+      - postgres_password
+      - optional_tools
+    networks:
+      - vicarius-network
+
+networks:
+  vicarius-network:
+    attachable: true
+
+secrets:
+  api_key:
+    external: true
+  dashboard_id:
+    external: true
+  postgres_db:
+    external: true
+  postgres_user:
+    external: true
+  postgres_password:
+    external: true
+  optional_tools:
+    external: true
