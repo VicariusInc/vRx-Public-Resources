@@ -304,6 +304,7 @@ After the page loads, you should see the following output:
 *Metabase Template is up to date*
 
 This confirms the template updated. 
+
 ![image](https://github.com/user-attachments/assets/8c8776f4-a3e3-4be3-8a5b-063992939af2)
 
 
