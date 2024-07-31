@@ -21,7 +21,7 @@ services:
     labels:
 #      - "traefik.enabled=true"
       - "traefik.http.routers.metabase.entrypoints=web,websecure"
-      - "traefik.http.routers.metabase.rule=Host(`ec2-52-91-103-153.compute-1.amazonaws.com`)"
+      - "traefik.http.routers.metabase.rule=Host(`<Your Host>`)"
       - "traefik.http.routers.metabase.tls=true"
       - "traefik.http.routers.metabase.tls.certresolver=prod"
 

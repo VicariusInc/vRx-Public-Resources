@@ -29,6 +29,16 @@ https://customer-portal.vicarius.io/getting-started-with-vrx-rest-api
 ### Your dashboard_id corresponds to the url you use to login to your dashboard
 Example: organization in https://organization.vicarius.cloud/
 
+## HTTPS is required to access the dashboard
+If you are using the builtin dashboard, A DNS A record is record. 
+
+### DNS Host Name
+A DNS hostname is required for this implmentation!
+Prior to deployment please configure an a record to access the dashboard. The a record can be in public or private. 
+If a public record is used https will be setup with a letsencrypt cert automatically. If a private record is used a default cert will be used. 
+
+
+
 # Installation Method 
 ## Method 1: URL Download
 
@@ -116,8 +126,26 @@ Metabase is an open-source business intelligence platform licensed under AGPL. Y
 * It is recommended to let the app complete the initialization and first run before launching metabase. 
 * The initial run can take several hours depending on the size of your data.
 * A progress bar is planned 
+* To check run the status of the deployment run this command 
+
+```bash 
+tail -n 10 -f app/logs/initialsync.log
+```
+
+* * Use ctrl-c to exit the log view. 
+
 
 Metabase will install with Traefik to facilitate SSL/TLS connections. 
+
+## HTTPS is required to access the dashboard
+If you are using the builtin dashboard, A DNS A record is record. 
+
+### DNS Host Name
+A DNS hostname is required for this implmentation!
+
+* Prior to deployment please configure an a record to access the dashboard. The a record can be in public or private. 
+If a public record is used https will be setup with a letsencrypt cert automatically. If a private record is used a default cert will be used. 
+
 
 ### Install Metabase
 
