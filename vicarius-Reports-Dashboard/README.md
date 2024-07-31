@@ -44,7 +44,6 @@ If a public record is used https will be setup with a letsencrypt cert automatic
 
 ### Download and unzip the file
 Download the package to the asset that will host the docker containers
-vRxReportsDashboard.tar.gz https://github.com/jordan-Vicarius/Vicarius-vRx-Reports-Dashboard/releases/latest/download/vicarius-vrx-reports.tar.gz
 
 Newest Version
 ```bash
