@@ -73,11 +73,13 @@ Copy your api key from the vRx dashboard
 - Login into your dashboard
 - go to Settings - Integrations - Installed Integrations - API
 - Click on the API and copy the API Key
+![image](https://github.com/user-attachments/assets/25ebe66a-7eeb-4e0e-a2e3-32c22d032517)
 
 
 
 Your dashboard_ID is the first portion of your dashboard url 
 - https://example.vicarius.cloud, Dashboard_id is example
+![image](https://github.com/user-attachments/assets/84302dfc-10c6-43e2-a959-ce909ac71104)
 
 
 Create the password for the local Database. This user will be used to access the database by data visualization tools. Please keep the username and password in a safe place
@@ -85,6 +87,7 @@ Create the password for the local Database. This user will be used to access the
 Optional Tools:
 Specify Which Optional Tools you would like to be installed. 
 - Metabase: Data Visualization with Template
+![image](https://github.com/user-attachments/assets/1977a467-7db5-42a4-ad1e-a20fbb20e693)
 
 
 
@@ -111,6 +114,7 @@ Run docker ps to confirm the containers are up.
 ```bash
 sudo docker ps
 ```
+![image](https://github.com/user-attachments/assets/714798b3-cbac-47c9-8942-619d1d831b4e)
 
 
 
@@ -152,7 +156,8 @@ Add a hostname to the metabase docker compose file
 nano metabase/docker-compose.yml
 ``` 
 Locate line 23 inside the labels section and add your hostname
-![alt text](image.png)
+![image](https://github.com/user-attachments/assets/5fe180af-340e-4cbf-95e3-84bcd9338c18)
+
 
 Once complete line 23 should read something like this
 ```bash
@@ -164,7 +169,8 @@ Add your email for a lets encrypt certificate
 nano traefik/config/traefik.yaml
 ``` 
 Locate line 44 inside the certificatesResolvers: section and replace admin@example.com with your email
-![alt text](image-1.png)
+![image](https://github.com/user-attachments/assets/66a58e00-1692-4bc0-93cc-2530b39ca59e)
+
 
 
 To install Metabase run the optional-metabaseInstall.sh script.
@@ -178,6 +184,7 @@ Metabase Docker Service
 ```bash
 sudo docker service ls
  ```
+![image](https://github.com/user-attachments/assets/c734283e-e266-44c6-a1dc-690448c2e38f)
 
 
 *The containers can take 5 minutes to come online and be active 
@@ -194,12 +201,14 @@ The Metabase installation installs a template by default. When you navigate to t
 - Default Password: Vicarius123!@#
 
 Once Logged in go to settings account settings and change the default password 
+![image](https://github.com/user-attachments/assets/c44a9547-8ea8-4317-8edb-fe52634433dc)
 
 
 
 After changing the default credentials, Change the database settings to reflect the database user and password created earlier.
 
 - Go to Settings - Admin Settings - Selecte Database on the top navigation window
+![image](https://github.com/user-attachments/assets/c4ea21bd-1dd7-416b-8f74-fbba22dba250)
 
 - Select the vRX-Reports database
 - Change the following settings
@@ -295,6 +304,7 @@ After the page loads, you should see the following output:
 *Metabase Template is up to date*
 
 This confirms the template updated. 
+![image](https://github.com/user-attachments/assets/8c8776f4-a3e3-4be3-8a5b-063992939af2)
 
 
 5. Stop the web management app.
