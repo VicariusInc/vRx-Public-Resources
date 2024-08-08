@@ -21,7 +21,7 @@ services:
     labels:
 #      - "traefik.enabled=true"
       - "traefik.http.routers.metabase.entrypoints=web,websecure"
-      - "traefik.http.routers.metabase.rule=Host(`<Your Host>`)"
+      - "traefik.http.routers.metabase.rule=Host(`<Your Hostname>`)"
       - "traefik.http.routers.metabase.tls=true"
       - "traefik.http.routers.metabase.tls.certresolver=prod"
 

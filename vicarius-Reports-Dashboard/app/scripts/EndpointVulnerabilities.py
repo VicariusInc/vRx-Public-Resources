@@ -80,10 +80,10 @@ def getEndpointVulnerabilities(apikey,urldashboard,fr0m,siz3,minDate,maxDate,end
         print("something is wrong, will try again....")
         time.sleep(30)
         getEndpointVulnerabilities(apikey,urldashboard,fr0m,siz3,minDate,maxDate,endpointName,endpointHash)
-    if response.status_code == 429:
-        print("API Rate Limit exceeded ... Waiting and Trying again")
-        time.sleep(60)
-        getEndpointVulnerabilities(apikey,urldashboard,fr0m,siz3,minDate,maxDate,endpointName,endpointHash)
+    #if response.status_code == 429:
+    #    print("API Rate Limit exceeded ... Waiting and Trying again")
+    #    time.sleep(60)
+    #    getEndpointVulnerabilities(apikey,urldashboard,fr0m,siz3,minDate,maxDate,endpointName,endpointHash)
 
     return jresponse
 
@@ -134,12 +134,15 @@ def parseEndpointVulnerabilities(apikey,urldashboard,jresponse): #endpointGroups
         if i['organizationEndpointVulnerabilitiesPatch']['patchId'] > 0:
             patchid = str(i['organizationEndpointVulnerabilitiesPatch']['patchId'])
             patchName = (i['organizationEndpointVulnerabilitiesPatch']['patchName'])
-            patchReleaseDate = i['organizationEndpointVulnerabilitiesPatch']['patchReleaseDate']
+            try:
+                patchReleaseDate = i['organizationEndpointVulnerabilitiesPatch']['patchReleaseDate']
+            except:
+                patchReleaseDate = 0
             #patchFileName = str(i['organizationEndpointVulnerabilitiesPatch']['patchFileName'])
         else:
             patchid = "0"
             patchName = "n\\a"
-            patchReleaseDate = 0000000000000
+            patchReleaseDate = 0
             #patchFileName = "n\\a"
 
         try:
