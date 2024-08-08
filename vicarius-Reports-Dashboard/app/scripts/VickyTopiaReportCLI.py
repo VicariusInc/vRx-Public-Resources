@@ -850,24 +850,29 @@ def SearchGroupsbyEndpoint(endpoint,dfg):
 
 def getAllEndpointsVulnerabilities(fr0m,siz3,minDate,maxDate,endpointName,endpointHash):
     count = 0 
-
+    orgmaxDate = maxDate
+    print("date" + str(minDate) + " - " + str(maxDate))
     try:
         control_rate()
         jresponse = vuln.getEndpointVulnerabilities(apikey, urldashboard, fr0m, siz3, minDate, maxDate, endpointName, endpointHash)
 
         server_response_count = jresponse.get('serverResponseCount', 0)
-
         if server_response_count > 0:
             strVulnerabilities, maxDate = vuln.parseEndpointVulnerabilities(apikey, urldashboard, jresponse)
             #print (strVulnerabilities)
             #print (strVulnerabilities)
             #writeReport(dictState['reportVulnerabilities'],strVulnerabilities)
             print("AssetName: " + endpointName)
+            print("date" + str(minDate) + " - " + str(maxDate))
+            print("serverResponseCount" + str(server_response_count))
             db.insert_into_table_activevulnerabilities(strVulnerabilities, host, port, user, password, database)
-            #fr0m += siz3
+            fr0m += siz3
             jresponseCount = len(strVulnerabilities)
             if server_response_count >= siz3:
-                getAllEndpointsVulnerabilities(fr0m, siz3, minDate, maxDate, endpointName, endpointHash)
+                if fr0m <= server_response_count:
+                    print("Pagination: " + str(fr0m))
+                    getAllEndpointsVulnerabilities(fr0m, siz3, minDate, orgmaxDate, endpointName, endpointHash)
+
 
     except Exception as e:
         # Handle errors/log here
@@ -876,11 +881,12 @@ def getAllEndpointsVulnerabilities(fr0m,siz3,minDate,maxDate,endpointName,endpoi
 
 def ReportVunerabilities():
    
-    df = pd.read_csv(dictState['reportAssets'])
-    df = df.sort_values(by='last_connected', ascending=False)
-    df = df.drop_duplicates(subset=['hostname'], keep='first')
-    print("Total Assets: " + str(len(df.index)))
-
+    #df = pd.read_csv(dictState['reportAssets'])
+    #df = df.sort_values(by='last_connected', ascending=False)
+    #df = df.drop_duplicates(subset=['hostname'], keep='first')
+    #print("Total Assets: " + str(len(df.index)))
+    df = db.load_endpoints_to_df(host, port, user, password, database)
+    print("Checking Vulns on Assets: " + str(len(df.index)))
     fr0m = 0
     siz3 = 500
     totalPatchs = 0    
@@ -898,8 +904,8 @@ def ReportVunerabilities():
 
     for ind in df.index:
         
-        endpointName = df['hostname'][ind]
-        endpointHash = df['hash'][ind]
+        endpointName = df['endpoint_name'][ind]
+        endpointHash = df['endpoint_hash'][ind]
         #endpointSO = df['so'][ind]
         getAllEndpointsVulnerabilities(fr0m,siz3,minDate,maxDate,endpointName,endpointHash)
 

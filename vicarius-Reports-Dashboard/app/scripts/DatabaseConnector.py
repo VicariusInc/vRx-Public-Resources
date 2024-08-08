@@ -451,6 +451,29 @@ def clean_table_endpoints(host, port, user, password, database):
     cur.close()
     conn.close()
 
+def load_endpoints_to_df(host, port, user, password, database):
+    table = "endpoints"
+    db_params = {
+        'host': host,
+        'port': port,
+        'user': user,
+        'password': password,
+        'database': database
+    }
+    enpassword = urllib.parse.quote_plus(password)
+    # Create connection string
+    engine = sa.create_engine(f"postgresql://{user}:{enpassword}@{host}:{port}/{database}")
+    # Load table into DataFrame
+    try:
+        sql = (f"select * from {table}")
+        #df = pd.read_sql_query(sql,con=engine,dtype={{column}:np.int64})
+        df = pd.read_sql_query(sql,con=engine)
+        #df['create_at_nano'] = df['create_at_nano'].astype(np.int64)
+        return df
+    except Exception as e:
+        print(f"Error loading table {table} into DataFrame: {e}")
+        return None
+
 def insert_into_table_endpointsStatus(data_string, host, port, user, password, database):
     #print (data_string)
     # Parâmetros de conexão
