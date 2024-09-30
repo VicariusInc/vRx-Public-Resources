@@ -35,6 +35,7 @@ def get_days_diff_from_timestamp(timestamp_ms):
     return diff.days
 
 def getCountEvents(apikey,urldashboard,lastdate):
+    errors = []
     headers = {
         'Accept': 'application/json',
         'Vicarius-Token': apikey,
@@ -51,8 +52,55 @@ def getCountEvents(apikey,urldashboard,lastdate):
         
     responsecount = jsonresponse['serverResponseCount']
 
-    return responsecount
+    try:
+        return responsecount
+    except:
+        return 0
+
+def getCountEventsPerAsset(apikey,urldashboard,endpointHash,trycount=0):
+    errors = []
+    headers = {
+        'Accept': 'application/json',
+        'Vicarius-Token': apikey,
+    }
     
+    params = {
+        'from': 0,
+        'size': 500,
+        'q': 'organizationEndpointVulnerabilitiesEndpoint.endpointHash=in=('+endpointHash+')',
+        'includeFields' : 'organizationEndpointVulnerabilitiesEndpoint.endpointId,organizationEndpointVulnerabilitiesEndpoint.endpointHash,organizationEndpointVulnerabilitiesVulnerability.vulnerabilityExternalReference.externalReferenceExternalId,organizationEndpointVulnerabilitiesVulnerability.vulnerabilityId,organizationEndpointVulnerabilitiesProduct.productName,organizationEndpointVulnerabilitiesOperatingSystem.operatingSystemName,organizationEndpointVulnerabilitiesVersion.versionName,organizationEndpointVulnerabilitiesSubVersion.subVersionName,organizationEndpointVulnerabilitiesProductRawEntry.productRawEntryName,organizationEndpointVulnerabilitiesVulnerability.vulnerabilitySensitivityLevel.sensitivityLevelName,organizationEndpointVulnerabilitiesVulnerability.vulnerabilitySummary,organizationEndpointVulnerabilitiesEndpoint.endpointName,organizationEndpointVulnerabilitiesPatch.patchId,organizationEndpointVulnerabilitiesPatch.patchName,organizationEndpointVulnerabilitiesPatch.patchReleaseDate,organizationEndpointVulnerabilitiesCreatedAt,organizationEndpointVulnerabilitiesUpdatedAt,organizationEndpointVulnerabilitiesVulnerability.vulnerabilityV3ExploitabilityLevel,organizationEndpointVulnerabilitiesVulnerability.vulnerabilityV3BaseScore'
+    }
+    if (trycount < 2):
+        try:
+            response = requests.get(urldashboard + '/vicarius-external-data-api/organizationEndpointVulnerabilities/search', params=params, headers=headers)
+            if response.status_code == 429:
+                print("API Rate Limit exceeded ... Waiting and Trying again")
+                errors.append("API Rate Limit")
+                time.sleep(60)
+                trycount += 1
+                getCountEventsPerAsset(apikey,urldashboard,endpointHash,trycount)
+            jsonresponse = json.loads(response.text)
+        except Exception as e:
+                print(f'something is wrong, will try again- EndpointHash: {endpointHash}, ')
+                errors.append(f"Exception: {e}, EndpointHash: {endpointHash}")
+                time.sleep(60)
+                trycount += 1
+                getCountEventsPerAsset(apikey,urldashboard,endpointHash,trycount)
+    #print (jsonresponse)
+    
+    try:
+        responsecount = int(jsonresponse['serverResponseCount'])
+    except:
+        responsecount = 0
+        
+    
+    try: 
+        return responsecount, jsonresponse, errors
+    except Exception as e:
+        errors.append(f"Return Exception: {e},")
+        jsonresponse = {}
+        return 0, jsonresponse, errors
+ 
 def getEndpointVulnerabilities(apikey,urldashboard,fr0m,siz3,minDate,maxDate,endpointName,endpointHash):
 
     headers = {
@@ -63,10 +111,10 @@ def getEndpointVulnerabilities(apikey,urldashboard,fr0m,siz3,minDate,maxDate,end
     params = {
         'from': fr0m,
         'size': siz3,
-        'q': 'organizationEndpointVulnerabilitiesCreatedAt>'+str(minDate)+';organizationEndpointVulnerabilitiesCreatedAt<'+str(maxDate)+';organizationEndpointVulnerabilitiesEndpoint.endpointHash=in=('+endpointHash+')', #.endpointName==' + endpointName,
-        'sort' : '-organizationEndpointVulnerabilitiesCreatedAt',
+        'q': 'organizationEndpointVulnerabilitiesEndpoint.endpointHash=in=('+endpointHash+')',
+        'includeFields' : 'organizationEndpointVulnerabilitiesEndpoint.endpointId,organizationEndpointVulnerabilitiesEndpoint.endpointHash,organizationEndpointVulnerabilitiesVulnerability.vulnerabilityExternalReference.externalReferenceExternalId,organizationEndpointVulnerabilitiesVulnerability.vulnerabilityId,organizationEndpointVulnerabilitiesProduct.productName,organizationEndpointVulnerabilitiesOperatingSystem.operatingSystemName,organizationEndpointVulnerabilitiesVersion.versionName,organizationEndpointVulnerabilitiesSubVersion.subVersionName,organizationEndpointVulnerabilitiesProductRawEntry.productRawEntryName,organizationEndpointVulnerabilitiesVulnerability.vulnerabilitySensitivityLevel.sensitivityLevelName,organizationEndpointVulnerabilitiesVulnerability.vulnerabilitySummary,organizationEndpointVulnerabilitiesEndpoint.endpointName,organizationEndpointVulnerabilitiesPatch.patchId,organizationEndpointVulnerabilitiesPatch.patchName,organizationEndpointVulnerabilitiesPatch.patchReleaseDate,organizationEndpointVulnerabilitiesCreatedAt,organizationEndpointVulnerabilitiesUpdatedAt,organizationEndpointVulnerabilitiesVulnerability.vulnerabilityV3ExploitabilityLevel,organizationEndpointVulnerabilitiesVulnerability.vulnerabilityV3BaseScore'
     }
-    jresponse = []
+    #jresponse = []
     try:
         time.sleep(0.5)
         response = requests.get(urldashboard + '/vicarius-external-data-api/organizationEndpointVulnerabilities/search', params=params, headers=headers)
@@ -85,7 +133,11 @@ def getEndpointVulnerabilities(apikey,urldashboard,fr0m,siz3,minDate,maxDate,end
     #    time.sleep(60)
     #    getEndpointVulnerabilities(apikey,urldashboard,fr0m,siz3,minDate,maxDate,endpointName,endpointHash)
 
-    return jresponse
+    try: 
+        return jresponse
+    except:
+        jresponse = {}
+        return jresponse
 
 def parseEndpointVulnerabilities(apikey,urldashboard,jresponse): #endpointGroups):
     
@@ -169,13 +221,6 @@ def parseEndpointVulnerabilities(apikey,urldashboard,jresponse): #endpointGroups
 
         hpatchReleaseDate = safe_convert_to_datetime(patchReleaseDate)
 
-        #if productRawEntryName == "Mozilla Foundation_Firefox 17.0.11 ESR_17.0.11_x86_8503_":
-        #    if i['organizationEndpointVulnerabilitiesPatch']['patchName'] != "":
-        #        print("Found Firefox")
-        #        unjson = json.dumps(i)
-        #       print(unjson)
-
-        #age = get_days_diff_from_timestamp(createAttimemille)
 
         vulnerability_dict = {
             "endpointId" : endpointId,
@@ -203,11 +248,6 @@ def parseEndpointVulnerabilities(apikey,urldashboard,jresponse): #endpointGroups
 
         vulns_list.append(vulnerability_dict)
 
-        #add json return for vulnerabilties
-        #strVulnerabilities += ("'" + asset + "','" + endpointHash + "','" + productName + "','" + productRawEntryName + "','" + sensitivityLevelName + "','" + cve + "'," + vulid + "," + patchid + ",'" + patchName + "'," + patchReleaseDate + ",'" + createAt + "','" + updateAt + "','" + link + "','\"" + vulnerabilitySummary + "\"'," +vulnerabilityV3BaseScore + "," + vulnerabilityV3ExploitabilityLevel + ",'" + typecve + "','" + version + "'," + str(age) +"\n")
 
-        maxDate = createAttimemille
-
-    return vulns_list, maxDate
-
+    return vulns_list 
     

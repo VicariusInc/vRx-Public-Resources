@@ -1,0 +1,1 @@
+/usr/local/bin/python /usr/src/app/scripts/VickyTopiaReportCLI.py --difTables >> /var/log/difTables.log 2>&1

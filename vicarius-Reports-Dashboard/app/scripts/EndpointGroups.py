@@ -4,39 +4,8 @@ import requests
 import json
 import time
 
-def getAssetsbySearchQueryCount(apikey,urldashboard,searchQuery):
-    headers = {
-        'Accept': 'application/json',
-        'Vicarius-Token': apikey,
-        'Charset': 'utf-8', 
-        'Content-Type': 'application/json',
-    }
-
-    params = {
-        'from': 0,
-        'includeFields': 'endpointName',
-        'size': 1,
-    }
-
-    data = searchQuery
-
-    try: 
-        response = requests.get(
-            urldashboard + '/vicarius-external-data-api/endpoint/search',
-            params=params,
-            headers=headers,
-            data=data,
-        )
-        jresponse = json.loads(response.text)
-        responsecount = jresponse['serverResponseCount']
-        #print(json.dumps(jresponse,indent=2))
-
-    except:
-        print('Something is wrong to obtain assets in group')
-    
-    return responsecount
-
-def getAssetsbySearchQuery(apikey,urldashboard,searchQuery,fr0m,siz3):
+def getAssetsbyGroupID(apikey,urldashboard,groupName,groupId,fr0m,siz3,trycount=0):
+     
     headers = {
         'Accept': 'application/json',
         'Vicarius-Token': apikey,
@@ -50,42 +19,58 @@ def getAssetsbySearchQuery(apikey,urldashboard,searchQuery,fr0m,siz3):
         'size': siz3,
     }
 
-    data = searchQuery
+    payload = json.dumps([
+        {
+            "searchQueryName": "assetsGroup",
+            "searchQueryObjectName": "OrganizationEndpointGroup",
+            "searchQueryObjectJoinByFieldName": "endpointId",
+            "searchQueryObjectJoinByForeignFieldName": "endpointId",
+            "searchQueryQuery": f"organizationEndpointGroupId=in=({groupId})",
+            "searchQueryQueryFetchMode": "PrefetchIds"
+        }
+    ])
 
     try: 
         response = requests.get(
             urldashboard + '/vicarius-external-data-api/endpoint/search',
             params=params,
             headers=headers,
-            data=data,
+            data=payload,
         )
+        while response.status_code == 429 and trycount < 2:
+            ("API Rate Limit exceeded ... Waiting and Trying again")
+            
+            time.sleep(60)
+            response = requests.get(
+                urldashboard + '/vicarius-external-data-api/endpoint/search',
+                params=params,
+                headers=headers,
+                data=payload,
+            )
+            trycount += 1
+            jresponse = json.loads(response.text)
+            src = jresponse['serverResponseCount']
+            
+        if trycount >= 2:
+            print("API Rate Limit exceeded .")
+            src = 0 
+        else: 
+            jresponse = json.loads(response.text)
+            src = jresponse['serverResponseCount']
+
+        #(f'params:{params}, body:{payload}, url:{urldashboard}/vicarius-external-data-api/endpoint/search')
         jresponse = json.loads(response.text)
+        #responsecount = jresponse['serverResponseCount']
         #print(json.dumps(jresponse,indent=2))
 
     except:
         print('Something is wrong to obtain assets in group')
 
-    endpointsNames = ""
-    endpointIds = ""
-    endpointHashs = ""
+    return src,[{'groupId': groupId, 'groupName': groupName,'endpointName': i['endpointName'], 'endpointId': i['endpointId'], 'endpointHash': i['endpointHash']}
+            for i in jresponse.get('serverResponseObject', [])]
 
-    for i in jresponse['serverResponseObject']:
-        endpointName = i['endpointName']
-        endpointsNames += endpointName + "|"
-        endpointId = str(i['endpointId'])
-        endpointIds += endpointId + "|"
-        endpointHash = str(i['endpointHash'])
-        endpointHashs += endpointHash + "|"
-
-    endpointsNames = endpointsNames[:-1]
-    endpointIds = endpointIds[:-1]    
-    endpointHashs = endpointHashs[:-1]    
-
-    return endpointsNames,endpointIds,endpointHashs
-
-
-def getEndpointGroups(apikey,urldashboard,fr0m,siz3):
-
+def getEndpointGroupsID(apikey, urldashboard, fr0m, siz3, trycount=0):
+    print("new Group query by ID ")
     headers = {
         'Accept': 'application/json',
         'Vicarius-Token': apikey,
@@ -97,44 +82,39 @@ def getEndpointGroups(apikey,urldashboard,fr0m,siz3):
         'sort': '-organizationEndpointGroupUpdatedAt',
     }
 
-    try: 
+    try:
         response = requests.get(
             urldashboard + '/vicarius-external-data-api/organizationEndpointGroup/search', 
             params=params, 
             headers=headers
         )
-        jresponse = json.loads(response.text)
+        #print(response.text)
+        while response.status_code == 429 and trycount < 2:
+            ("API Rate Limit exceeded ... Waiting and Trying again")
+            
+            time.sleep(60)
+            response = requests.get(
+                urldashboard + '/vicarius-external-data-api/organizationEndpointGroup/search', 
+                params=params, 
+                headers=headers
+            )
+            trycount += 1
+            jresponse = json.loads(response.text)
+            src = jresponse['serverResponseCount']
+            
+        if trycount >= 2:
+            print("API Rate Limit exceeded .")
+            src = 0 
+        else: 
+            jresponse = json.loads(response.text)
+            src = jresponse['serverResponseCount']
+        jresponse = response.json()
+        print("*********************")
 
-    except:
-        print('Something is wrong to obtain grups')
-    
-    groupNames = ""
+        #print(f'headers')
+    except requests.RequestException as e:
+        print(f"Error fetching groups: {e}")
+        return []
 
-    for i in jresponse['serverResponseObject']:
-        groupName = i['organizationEndpointGroupName']
-        groupSearchQuery = i['organizationEndpointGroupSearchQueries']
-        groupNames += groupName +"||"+ groupSearchQuery + "\n"
-
-    return groupNames
-
-def getEndpointGroupsCount(apikey,urldashboard):
-
-    headers = {
-        'Accept': 'application/json',
-        'Vicarius-Token': apikey,
-    }
-
-    params = {
-        'from': 0,
-        'size': 1,
-    }
-
-    try:
-        response = requests.get(urldashboard + '/vicarius-external-data-api/organizationEndpointGroup/search', params=params, headers=headers)
-        parsed = json.loads(response.text)
-        responsecount = parsed['serverResponseCount']
-
-    except:
-        print('problem get number of groups')
-    
-    return responsecount
+    return src,[{'groupName': i['organizationEndpointGroupName'], 'groupID': i['organizationEndpointGroupId'], 'groupTeam': i['organizationEndpointGroupOrganizationTeam']['organizationTeamName'], 'groupTeamId': i['organizationEndpointGroupOrganizationTeam']['organizationTeamId']}
+            for i in jresponse.get('serverResponseObject', [])]

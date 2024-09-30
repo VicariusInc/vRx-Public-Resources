@@ -4,13 +4,22 @@ import psycopg2
 import pandas as pd
 import datetime
 import sqlalchemy as sa
+import urllib
 import urllib.parse 
 import numpy as np
+from psycopg2 import sql
+import json
 
 def add_column_to_table(cur, table, columnName):
     for col in columnName:
         #print(f"Check/Adding {col} column to {table} ")
         cur.execute(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {col};")
+
+def removeConstraints(cur, table):
+    cur.execute(f"ALTER TABLE {table} DROP CONSTRAINT {table}_pkey;")
+
+def addConstraints(cur, table, columnName):
+    cur.execute(f"ALTER TABLE {table} ADD PRIMARY KEY ({columnName});")
 
 def drop_view(cur, view):
     print(f"Dropping view {view}")
@@ -37,38 +46,20 @@ def create_table_views(host, port, user, password, database):
 
     #Create Endpoints_Groups_View
     Endpoint_Groups_View = """
-        CREATE OR REPLACE VIEW Endpoint_Groups_View AS
-        SELECT endpoints.endpoint_id,
-            endpoints.endpoint_name,
-            groupendpoints.groupname,
-            endpoints.endpoint_hash,
-            endpoints.alive,
-            endpoints.operating_system_name,
-            endpoints.agent_version,
-            endpoints.substatus,
-            endpoints.connectedbyproxy,
-            endpoints.tokengentime,
-            endpoints.deployed,
-            endpoints.last_connected,
-            endpoints.deploymentdate,
-            endpoints.lastcontactdate
-        FROM endpoints
-            JOIN groupendpoints ON endpoints.endpoint_hash = groupendpoints.endpoint_hash
-        UNION
-        SELECT endpoints.endpoint_id,
-            endpoints.endpoint_name,
-            'All Assets'::text AS groupname,
-            endpoints.endpoint_hash,
-            endpoints.alive,
-            endpoints.operating_system_name,
-            endpoints.agent_version,
-            endpoints.substatus,
-            endpoints.connectedbyproxy,
-            endpoints.tokengentime,
-            endpoints.deployed,
-            endpoints.last_connected,
-            endpoints.deploymentdate,
-            endpoints.lastcontactdate
+        DROP VIEW IF EXISTS endpoint_groups_view;
+        CREATE VIEW endpoint_groups_view AS
+        SELECT 
+            endpoint_id,
+            endpoint_hash,
+            groupname
+        FROM endpointgroups
+
+        UNION ALL
+
+        SELECT 
+            endpoint_id,
+            endpoint_hash,
+            'All Assets'::text AS groupname
         FROM endpoints;
     """
     cur.execute(Endpoint_Groups_View)
@@ -187,7 +178,7 @@ def create_table_views(host, port, user, password, database):
             incident.endpoint_id,
             incident.endpoint_hash,
             incident.asset,
-            groupendpoints.groupname,
+            endpointgroups.groupname,
             incident.cve,
             incident.cvss,
             incident.event_type,
@@ -206,7 +197,7 @@ def create_table_views(host, port, user, password, database):
         FROM
             incident
         JOIN
-            groupendpoints ON incident.endpoint_hash = groupendpoints.endpoint_hash;
+            endpointgroups ON incident.endpoint_hash = endpointgroups.endpoint_hash;
     """
     cur.execute(incident_view_query)
     cur.execute(mitigation_time_query)
@@ -261,6 +252,28 @@ def repair_table_tasks(host, port, user, password, database):
         'patch_file_name TEXT',
         'patch_package_file_name TEXT',
         'patch_release_date BIGINT'     
+    ]
+    removeConstraints(cur, table)
+    addConstraints(cur, table, "updateatnano")
+    add_column_to_table(cur,table,columnName)
+    
+    cur.close()
+    conn.close()
+    
+def repair_table_scriptActivity(host, port, user, password, database):
+    db_params = {
+        'host': host,
+        'port': port,
+        'user': user,
+        'password': password,
+        'database': database
+    }
+    conn = psycopg2.connect(**db_params)
+    conn.autocommit = True
+    cur = conn.cursor()
+    table = "scriptactivity"
+    columnName = [
+        'reports TEXT'   
     ]
     add_column_to_table(cur,table,columnName)
     
@@ -336,10 +349,11 @@ def check_create_table_endpoints(host, port, user, password, database):
             deployed BIGINT,
             last_connected BIGINT,
             deploymentDate TIMESTAMP,
-            LastContactDate TIMESTAMP,
-            PRIMARY KEY (endpoint_id,tokenGenTime) 
+            LastContactDate TIMESTAMP
         );
         """
+        #,
+        #    PRIMARY KEY (endpoint_id,tokenGenTime) 
         cur.execute(create_table_query)
         print("The table 'endpoints' was successfully created")
 
@@ -378,7 +392,7 @@ def check_create_table_endpoints(host, port, user, password, database):
     cur.close()
     conn.close()
 
-def insert_into_table_endpoints(data_string, host, port, user, password, database):
+def insert_into_table_endpointsold(data_string, host, port, user, password, database):
     #print (data_string)
     # Parâmetros de conexão
     db_params = {
@@ -418,6 +432,77 @@ def insert_into_table_endpoints(data_string, host, port, user, password, databas
     # Fechar conexão
     cur.close()
     conn.close()
+
+def insert_into_table_endpoints(json_data, host, port, user, password, database):
+    #print (data_string)
+    # Parâmetros de conexão
+    print("inserting to endpoints")
+    db_params = {
+        'host': host,
+        'port': port,
+        'user': user,
+        'password': password,
+        'database': database  # Nome do banco de dados onde The table "endpoints" está localizada
+    }
+    ct = datetime.datetime.now()
+    conn = psycopg2.connect(**db_params)
+    conn.autocommit = True
+
+    cur = conn.cursor()
+    try:
+        sql = """
+        INSERT INTO endpoints 
+        (endpoint_id, endpoint_name, endpoint_hash, alive, operating_system_name, agent_version, substatus, connectedbyProxy, tokenGenTime, deployed, last_connected, deploymentDate, LastContactDate) 
+        VALUES (%(endpointId)s, %(endpointName)s, %(endpointHash)s, %(alive)s, %(operatingSystemName)s, %(agentVersion)s, %(substatus)s, %(connectedbyProxy)s, %(tokenGenTime)s, %(deployment_date)s, %(last_connected)s, %(deploymentDate)s, %(LastContact)s)
+        """
+
+        for record in json_data:
+            #print(json.dumps(record))
+            #print(sql)
+            cur.execute(sql, record)
+
+        print(str(ct) + f"Records inserted into the table 'endpoints' successfully:  {len (json_data)}")
+
+    except psycopg2.Error as e:
+        print(str(ct) + "An error occurred while inserting data into the table 'endpoints':", e)
+        # Printing the last executed query can help in debugging
+        print(cur.mogrify(sql, record))
+
+    # Close connection
+    cur.close()
+    conn.close()
+
+def load_endpoints_LEID(host,port,user,password,database):
+
+    db_params = {
+        'host': host,
+        'port': port,
+        'user': user,
+        'password': password,
+        'database': database
+    }
+
+    conn = psycopg2.connect(**db_params)
+    conn.autocommit = True
+    cur = conn.cursor()
+
+    # Construct the query
+    query = """
+        SELECT endpoint_id FROM endpoints 
+        ORDER BY endpoint_id DESC
+        LIMIT 1;
+    """
+    cur.execute(query)
+    result = cur.fetchone()
+
+    # Return just the endpoint_id (extract the first item from the tuple)
+    if result:
+        endpoint_id = result[0]
+        #print(endpoint_id)
+        return endpoint_id
+    else:
+        print("No result found.")
+        return None
 
 def clean_table_endpoints(host, port, user, password, database):
     # Parâmetros de conexão
@@ -474,7 +559,7 @@ def load_endpoints_to_df(host, port, user, password, database):
         print(f"Error loading table {table} into DataFrame: {e}")
         return None
 
-def insert_into_table_endpointsStatus(data_string, host, port, user, password, database):
+def insert_into_table_endpointsStatusold(data_string, host, port, user, password, database):
     #print (data_string)
     # Parâmetros de conexão
     db_params = {
@@ -514,6 +599,41 @@ def insert_into_table_endpointsStatus(data_string, host, port, user, password, d
     # Fechar conexão
     cur.close()
     conn.close()
+
+def insert_into_table_endpointsStatus(json_data, host, port, user, password, database):
+    #print (data_string)
+    # Parâmetros de conexão
+    db_params = {
+        'host': host,
+        'port': port,
+        'user': user,
+        'password': password,
+        'database': database  # Nome do banco de dados onde The table "endpoints" está localizada
+    }
+    ct = datetime.datetime.now()
+    conn = psycopg2.connect(**db_params)
+    conn.autocommit = True
+
+    cur = conn.cursor()
+
+    try:
+        sql = """
+        INSERT INTO endpoints_status 
+        (endpoint_id, endpoint_name, endpoint_hash, alive, connectedbyProxy, LastContactDate, runtime) 
+        VALUES (%(endpointId)s, %(endpointName)s, %(endpointHash)s, %(alive)s, %(connectedbyProxy)s, %(LastContact)s, %(runtime)s)
+        """
+
+        for record in json_data:
+            #print(json.dumps(record))
+            #print(sql)
+            cur.execute(sql, record)
+
+        print(str(ct) + f"Records inserted into the table 'endpoints_status' successfully:  {len (json_data)}")
+
+    except psycopg2.Error as e:
+        print(str(ct) + "An error occurred while inserting data into the table 'endpoints_status':", e)
+        # Printing the last executed query can help in debugging
+        print(cur.mogrify(sql, record))
 
 def check_create_table_endpointsAttribute(host, port, user, password, database):
     # Parâmetros de conexão
@@ -884,10 +1004,11 @@ def check_create_table_groupendpoints(host, port, user, password, database):
         groupname TEXT,
         hostname TEXT,
         endpoint_id BIGINT,
-        endpoint_hash TEXT,
-        PRIMARY KEY (groupname, hostname, endpoint_id, endpoint_hash)
+        endpoint_hash TEXT
     );
     """
+    #,
+    #      PRIMARY KEY (groupname, hostname, endpoint_id, endpoint_hash)
     cur.execute(create_table_query)
     print("The table 'groupendpoints' was created or already exists")
 
@@ -1085,6 +1206,242 @@ def insert_into_table_incident(json_data, host, port, user, password, database):
     cur.close()
     conn.close()
 
+def load_task_to_df(host, port, user, password, database, maxDate):
+    table = "tasks"
+    column = "updateatnano"
+    db_params = {
+        'host': host,
+        'port': port,
+        'user': user,
+        'password': password,
+        'database': database
+    }
+    enpassword = urllib.parse.quote_plus(password)
+    # Create connection string
+    engine = sa.create_engine(f"postgresql://{user}:{enpassword}@{host}:{port}/{database}")
+    # Load table into DataFrame
+    try:
+        sql = (f"select {column} from {table} where {table}.{column} <= {maxDate} Order BY {column} DESC LIMIT 1")
+        #print(sql)
+        #df = pd.read_sql_query(sql,con=engine,dtype={{column}:np.int64})
+        df = pd.read_sql_query(sql,con=engine)
+        df['updateatnano'] = df['updateatnano'].astype(np.int64)
+        return df
+    except Exception as e:
+        print(f"Error loading table {table} into DataFrame: {e}")
+        return None
+
+def load_tasks_waiting_to_dfold(two_weeks_ago, host, port, user, password, database):
+    table = "tasks"
+    column = "hcreateat"
+    db_params = {
+        'host': host,
+        'port': port,
+        'user': user,
+        'password': password,
+        'database': database
+    }
+    enpassword = urllib.parse.quote_plus(password)
+    # Create connection string
+    engine = sa.create_engine(f"postgresql://{user}:{enpassword}@{host}:{port}/{database}")
+    # Load table into DataFrame
+    try:
+        #sql = (f"select * from {table} where {table}.{column} > {two_weeks_ago} and action_status = 'Waiting'")
+        sql = (f"Select distinct automation_id from {table} where {column} > '{two_weeks_ago}' and action_status = 'Waiting';")
+        print(sql)
+        #df = pd.read_sql_query(sql,con=engine,dtype={{column}:np.int64})
+        df = pd.read_sql_query(sql,con=engine)
+        print(df)
+        return df
+    except Exception as e:
+        print(f"Error loading table {table} into DataFrame: {e}")
+        return None
+
+def load_tasks_waiting_to_dfpyscop(two_weeks_ago, host, port, user, password, database):
+    table = "tasks"
+    column = "hcreateat"
+    
+    # Create connection
+    try:
+        connection = psycopg2.connect(
+            host=host,
+            port=port,
+            user=user,
+            password=password,
+            database=database
+        )
+        cursor = connection.cursor()
+
+        # SQL query using parameterized input to avoid SQL injection
+        query = sql.SQL("""
+            SELECT DISTINCT automation_id 
+            FROM {table} 
+            WHERE {column} > %s AND action_status = 'Waiting';
+        """).format(
+            table=sql.Identifier(table),
+            column=sql.Identifier(column)
+        )
+
+        # Load data into pandas DataFrame
+        df = pd.read_sql_query(query.as_string(connection), con=connection, params=[two_weeks_ago])
+        
+        print(df)
+        return df
+    
+    except Exception as e:
+        print(f"Error loading table {table} into DataFrame: {e}")
+        return None
+    
+    finally:
+        if connection:
+            cursor.close()
+            connection.close()
+
+def load_tasks_waiting_to_df(two_weeks_ago, host, port, user, password, database):
+    table = "tasks"
+    column = "hcreateat"
+    
+    # Create connection string
+    enpassword = urllib.parse.quote_plus(password)
+    engine = sa.create_engine(f"postgresql://{user}:{enpassword}@{host}:{port}/{database}")
+    
+    # Load table into DataFrame
+    try:
+        sql = f"""
+        SELECT DISTINCT automation_id 
+        FROM {table} 
+        WHERE {column} > %(two_weeks_ago)s AND action_status = 'Waiting';
+        """
+        
+        # Using parameterized query to avoid SQL injection risks
+        params = {'two_weeks_ago': two_weeks_ago}
+        df = pd.read_sql_query(sql, con=engine, params=params)
+        
+        print(df)
+        return df
+    except Exception as e:
+        print(f"Error loading table {table} into DataFrame: {e}")
+        return None
+
+def drop_tasks_waiting_to_dfold(two_weeks_ago, host, port, user, password, database):
+    table = "tasks"
+    column = "hcreateat"
+    db_params = {
+        'host': host,
+        'port': port,
+        'user': user,
+        'password': password,
+        'database': database
+    }
+    enpassword = urllib.parse.quote_plus(password)
+    # Create connection string
+    engine = sa.create_engine(f"postgresql://{user}:{enpassword}@{host}:{port}/{database}")
+    # Load table into DataFrame
+    try:
+        #sql = (f"select * from {table} where {table}.{column} > {two_weeks_ago} and action_status = 'Waiting'")
+        #sql = (f"Select distinct automation_id from {table} where {table}.{column} > {two_weeks_ago} and action_status = 'Waiting';")
+        sql = (f"Delete from {table} where {column} > '{two_weeks_ago}' and action_status = 'Waiting';")
+        #print(sql)
+        #df = pd.read_sql_query(sql,con=engine,dtype={{column}:np.int64})
+        df = pd.read_sql_query(sql,con=engine)
+        print(df)
+        return df
+    except Exception as e:
+        print(f"Error loading table {table} into DataFrame: {e}")
+        return None
+
+def drop_tasks_waiting_to_dfpsycop(two_weeks_ago, host, port, user, password, database):
+    table = "tasks"
+    column = "hcreateat"
+    
+    # Create connection
+    try:
+        connection = psycopg2.connect(
+            host=host,
+            port=port,
+            user=user,
+            password=password,
+            database=database
+        )
+        cursor = connection.cursor()
+
+        # SQL query using parameterized input to avoid SQL injection
+        query = sql.SQL("""
+            DELETE FROM {table} 
+            WHERE {column} > %s AND action_status = 'Waiting';
+        """).format(
+            table=sql.Identifier(table),
+            column=sql.Identifier(column)
+        )
+
+        # Execute the DELETE statement
+        cursor.execute(query, [two_weeks_ago])
+        connection.commit()  # Commit the changes to the database
+
+        print("Records deleted successfully.")
+    
+    except Exception as e:
+        print(f"Error executing DELETE from {table}: {e}")
+        return None
+    
+    finally:
+        if connection:
+            cursor.close()
+            connection.close()
+
+def drop_tasks_waiting_to_df(two_weeks_ago, host, port, user, password, database, aID):
+    table = "tasks"
+    column = "hcreateat"
+    
+    # URL encode the password
+    enpassword = urllib.parse.quote_plus(password)
+    
+    # Create connection string using SQLAlchemy
+    engine = sa.create_engine(f"postgresql://{user}:{enpassword}@{host}:{port}/{database}")
+    
+    # Ensure numpy types are cast to native Python types
+    aID = int(aID) if isinstance(aID, np.integer) else aID
+    
+    # Execute DELETE query
+    try:
+        sql = f"""
+        DELETE FROM {table} 
+        WHERE {column} > :two_weeks_ago AND automation_id = :aID;
+        """
+        
+        # Using parameterized query to avoid SQL injection risks
+        with engine.begin() as connection:
+            connection.execute(sa.text(sql), {'two_weeks_ago': two_weeks_ago, 'aID': aID})
+        
+        print("Records deleted successfully.")
+    
+    except Exception as e:
+        print(f"Error executing DELETE from {table}: {e}")
+        return None
+ 
+def load_last_task(host, port, user, password, database):
+    table = "tasks"
+    column = "updateatnano"
+    db_params = {
+        'host': host,
+        'port': port,
+        'user': user,
+        'password': password,
+        'database': database
+    }
+    conn = psycopg2.connect(**db_params)
+    with conn.cursor() as cur:
+        # Construct the query using psycopg2's SQL template language for safety
+        query = sql.SQL("""
+            SELECT updateatnano FROM tasks
+            ORDER BY tasks.updateatnano DESC
+            LIMIT 1;
+        """)
+    cur.execute(query)
+    result = cur.fetchone()
+    print(result)
+    return result
+    
 def load_incident_to_df(host, port, user, password, database, maxDate):
     table = "incident"
     column = "create_at_nano"
@@ -1154,9 +1511,11 @@ def check_create_table_activevulnerabilities(host, port, user, password, databas
             vulnerability_v3_exploitability_level FLOAT,
             typecve TEXT,
             version TEXT,
-            subversion TEXT,
-            PRIMARY KEY (endpoint_hash,product_name,cve,version)     )
+            subversion TEXT   
+            )
         """
+        #,
+        #    PRIMARY KEY (endpoint_hash,product_name,cve,version)  
         cur.execute(create_table_query)
                
         print("The table 'activevulnerabilities' was created successfully!")
@@ -1296,7 +1655,7 @@ def check_create_table_tasks(host, port, user, password, database):
             hupdateat TIMESTAMP,
             created_at BIGINT,
             updated_at BIGINT,
-            PRIMARY Key (createatnano)
+            PRIMARY Key (updateatnano)
         );
         """
         cur.execute(create_table_query)
@@ -1308,7 +1667,7 @@ def check_create_table_tasks(host, port, user, password, database):
     cur.close()
     conn.close()
 
-def insert_into_table_tasks(json_data, host, port, user, password, database):
+def insert_into_table_tasksold(json_data, host, port, user, password, database):
     db_params = {
         'host': host,
         'port': port,
@@ -1352,6 +1711,141 @@ def insert_into_table_tasks(json_data, host, port, user, password, database):
 
     cur.close()
     conn.close()
+
+def insert_into_table_tasks(json_data, host, port, user, password, database):
+    # DB connection parameters
+    db_params = {
+        'host': host,
+        'port': port,
+        'user': user,
+        'password': password,
+        'database': database
+    }
+    ct = datetime.datetime.now()
+    
+    try:
+        # Connect to PostgreSQL using a context manager
+        with psycopg2.connect(**db_params) as conn:
+            # Disable autocommit for transaction management
+            conn.autocommit = False
+            
+            # Create cursor within the connection context
+            with conn.cursor() as cur:
+                table = "tasks"
+                
+                # Columns to add dynamically if not already present
+                columnName = [
+                    'endpoint_hash TEXT',
+                    'patch_name TEXT',
+                    'patch_file_name TEXT',
+                    'patch_package_file_name TEXT',
+                    'patch_release_date BIGINT'
+                ]
+                
+                # Dynamically add columns (assuming add_column_to_table handles this safely)
+                add_column_to_table(cur, table, columnName)
+
+                # Define the SQL query with parameterized placeholders
+                sql_query = """
+                    INSERT INTO tasks (
+                        endpoint_id, task_id, automation_id, automation_name, 
+                        endpoint_hash, asset, task_type, publisher_name, 
+                        path_or_product, path_or_product_desc, patch_name, 
+                        patch_file_name, patch_package_file_name, patch_release_date, 
+                        action_status, message_status, username, team, run_sequence, 
+                        asset_status, createatnano, updateatnano, hcreateat, 
+                        hupdateat, created_at, updated_at
+                    ) 
+                    VALUES (
+                        %(endpointId)s, %(taskid)s, %(automationId)s, %(automationName)s, 
+                        %(assetHash)s, %(asset)s, %(taskType)s, %(publisherName)s, 
+                        %(pathproduct)s, %(pathproductdesc)s, %(patchName)s, 
+                        %(patchFileName)s, %(patchPackageFileName)s, %(patchReleaseDate)s, 
+                        %(actionStatus)s, %(messageStatus)s, %(username)s, %(orgTeam)s, 
+                        %(runSequence)s, %(assetStatus)s, %(createAtNano)s, %(updateAtNano)s, 
+                        %(hcreateAt)s, %(hupdateAt)s, %(createAt)s, %(updateAt)s
+                    )
+                """
+                
+                # Insert records using executemany for batch processing
+                cur.executemany(sql_query, json_data)
+                
+                # Commit the transaction
+                conn.commit()
+                
+                print(f"{ct} The data was inserted into the 'tasks' table successfully!")
+    
+    except psycopg2.Error as e:
+        # Rollback the transaction if an error occurs
+        if conn:
+            conn.rollback()
+        print(f"{ct} An error occurred when inserting data into the 'tasks' table: {e}")
+    except Exception as e:
+        print(f"{ct} General error: {e}")
+
+def update_table_tasks(json_data, host, port, user, password, database):
+    # DB connection parameters
+    db_params = {
+        'host': host,
+        'port': port,
+        'user': user,
+        'password': password,
+        'database': database
+    }
+    ct = datetime.datetime.now()
+    
+    try:
+        # Connect to PostgreSQL using a context manager
+        with psycopg2.connect(**db_params) as conn:
+            # Disable autocommit for transaction management
+            conn.autocommit = False
+            
+            # Create cursor within the connection context
+            with conn.cursor() as cur:
+                table = "tasks"
+                
+                # Define the SQL UPDATE query with parameterized placeholders
+                sql_query = """
+                    UPDATE tasks
+                    SET
+                        automation_name = %(automationName)s,
+                        endpoint_hash = %(assetHash)s,
+                        asset = %(asset)s,
+                        task_type = %(taskType)s,
+                        publisher_name = %(publisherName)s,
+                        path_or_product = %(pathproduct)s,
+                        path_or_product_desc = %(pathproductdesc)s,
+                        patch_name = %(patchName)s,
+                        patch_file_name = %(patchFileName)s,
+                        patch_package_file_name = %(patchPackageFileName)s,
+                        patch_release_date = %(patchReleaseDate)s,
+                        action_status = %(actionStatus)s,
+                        message_status = %(messageStatus)s,
+                        username = %(username)s,
+                        team = %(orgTeam)s,
+                        run_sequence = %(runSequence)s,
+                        asset_status = %(assetStatus)s,
+                        updateatnano = %(updateAtNano)s,
+                        hupdateat = %(hupdateAt)s,
+                        updated_at = %(updateAt)s
+                    WHERE createatnano = %(createAtNano)s
+                """
+                
+                # Update records using executemany for batch processing
+                cur.executemany(sql_query, json_data)
+                
+                # Commit the transaction
+                conn.commit()
+                
+                print(f"{ct} The data was updated in the 'tasks' table successfully!")
+    
+    except psycopg2.Error as e:
+        # Rollback the transaction if an error occurs
+        if conn:
+            conn.rollback()
+        print(f"{ct} An error occurred when updating data in the 'tasks' table: {e}")
+    except Exception as e:
+        print(f"{ct} General error: {e}")
 
 def clean_table_tasks(host, port, user, password, database):
     db_params = {
@@ -1446,13 +1940,13 @@ def insert_into_table_assetspatchs(json_data, host, port, user, password, databa
     try:
         sql = """
         INSERT INTO assetspatchs 
-        (endpoint_hash, asset, so, patch_name, patchid, severity_level, severity_name, description, patch_release_date, patch_id) 
-        VALUES (%(endpointHash)s, %(endpointName)s, %(endpointSO)s, %(PatchName)s, %(patchId)s, %(sensitivityLevelRanks)s, %(sensitivityLevelNames)s, %(patchDescriptions)s, %(patchreleasedate)s, %(externalReferenceSourceIds)s)
+        (endpoint_hash, asset, patch_name, patchid, severity_level, severity_name, description, patch_release_date, patch_id) 
+        VALUES (%(endpointHash)s, %(endpointName)s, %(PatchName)s, %(patchId)s, %(sensitivityLevelRanks)s, %(sensitivityLevelNames)s, %(patchDescriptions)s, %(patchreleasedate)s, %(externalReferenceSourceIds)s)
         """
         nullSQL = """
         INSERT INTO assetspatchs 
-        (endpoint_hash, asset, so, patch_name, patchid, severity_level, severity_name, description, patch_release_date, patch_id) 
-        VALUES (%(endpointHash)s, %(endpointName)s, %(endpointSO)s, %(PatchName)s, %(patchId)s, %(sensitivityLevelRanks)s, %(sensitivityLevelNames)s, %(patchDescriptions)s, (NULL), %(externalReferenceSourceIds)s)
+        (endpoint_hash, asset, patch_name, patchid, severity_level, severity_name, description, patch_release_date, patch_id) 
+        VALUES (%(endpointHash)s, %(endpointName)s, %(PatchName)s, %(patchId)s, %(sensitivityLevelRanks)s, %(sensitivityLevelNames)s, %(patchDescriptions)s, (NULL), %(externalReferenceSourceIds)s)
         """
         for record in json_data:
             if record['patchreleasedate'] is None:
@@ -1626,7 +2120,8 @@ def check_create_table_scriptActivity(host,port,user,password,database):
             id SERIAL PRIMARY KEY,
             startTime TIMESTAMP,
             endTime TIMESTAMP,
-            errors TEXT
+            errors TEXT,
+            reports TEXT
 
         );
         """
@@ -1634,6 +2129,7 @@ def check_create_table_scriptActivity(host,port,user,password,database):
         print("The table 'scriptactivity' was created successfully!")
     else:
         print("The table 'scriptactivity' already exists!")
+        repair_table_scriptActivity(host, port, user, password, database)
     cur.close()
     conn.close()
 
@@ -1656,8 +2152,8 @@ def insert_into_table_scriptActivity(json_data,host,port,user,password,database)
     try:
         sql = """
         INSERT INTO scriptactivity 
-        (starttime,endtime,errors) 
-        VALUES (%(starttime)s, %(endtime)s, %(errors)s)
+        (starttime,endtime,errors,reports) 
+        VALUES (%(starttime)s, %(endtime)s, %(errors)s, %(reports)s)
         """
 
 
@@ -1670,7 +2166,7 @@ def insert_into_table_scriptActivity(json_data,host,port,user,password,database)
     except psycopg2.Error as e:
         print(str(ct) + "An error occurred while inserting data into the table 'scriptactivity':", e)
         # Printing the last executed query can help in debugging
-        print(cur.mogrify(sql, record))
+        print(cur.mogrify(sql))
 
     # Close connection
     cur.close()
@@ -1730,16 +2226,16 @@ def display_all_entries(host, port, user, password, database,table):
 
         # Exibir os registros
         if rows:
-            print("Registros encontrados nThe table 'groupendpoints':")
+            print("Registros encontrados nThe table 'endpointgroups':")
             for row in rows:
                 print(row)
                 #groupname, hostname, hash_value = row
                 #print(f"Groupname: {groupname}, Hostname: {hostname}, Hash: {hash_value}")
         else:
-            print("Nenhum registro encontrado nThe table 'groupendpoints'.")
+            print("Nenhum registro encontrado nThe table 'endpointgroups'.")
 
     except psycopg2.Error as e:
-        print("Ocorreu um erro ao exibir os registros dThe table 'groupendpoints':", e)
+        print("Ocorreu um erro ao exibir os registros dThe table 'endpointgroups':", e)
 
     # Fechar conexão
     cur.close()
@@ -2013,9 +2509,450 @@ def drop_all_tables(host, port, user, password, database):
     views = ["endpoint_groups_view","incident_view", "mitigation_time_view", "mitigation_performance_view", "incidents_group_view","mitigation_detection_active"]
     for view in views:
         drop_view(cur, view)
-    tables = ['incident','activevulnerabilities','tasks','assetspatchs','apps','endpoints','groupendpoints','xprotectevents','events']
+    tables = ['incident','activevulnerabilities','tasks','assetspatchs','apps','endpoints','endpointgroups','xprotectevents','events']
     for table in tables:
         drop_table(cur, table)
     
+    cur.close()
+    conn.close()
+
+def get_cve_count_by_endpoint_hash(host, port, user, password, database, specific_endpoint_hash=None):
+    # Connection parameters
+    db_params = {
+        'host': host,
+        'port': port,
+        'user': user,
+        'password': password,
+        'database': database
+    }
+
+    # Connect to PostgreSQL
+    conn = psycopg2.connect(**db_params)
+    conn.autocommit = True
+
+    # Create cursor
+    cur = conn.cursor()
+
+    try:
+        # Check if the table "activevulnerabilities" exists
+        cur.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'activevulnerabilities')")
+        exists = cur.fetchone()[0]
+
+        if not exists:
+            print("The table 'activevulnerabilities' does not exist!")
+            return None
+
+        # Query to get count of rows by endpoint_hash
+        if specific_endpoint_hash:
+            count_query = """
+            SELECT COUNT(*) as row_count
+            FROM activevulnerabilities
+            WHERE endpoint_hash = %s
+            """
+            cur.execute(count_query, (specific_endpoint_hash,))
+            result = cur.fetchone()
+            return result[0] if result else 0
+        else:
+            count_query = """
+            SELECT endpoint_hash, COUNT(*) as row_count
+            FROM activevulnerabilities
+            GROUP BY endpoint_hash
+            """
+            cur.execute(count_query)
+            results = cur.fetchall()
+            return {row[0]: row[1] for row in results}
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return None
+
+    finally:
+        # Close connection
+        cur.close()
+        conn.close()
+
+def delete_activevulnerabilities_by_endpoint_hash(host, port, user, password, database, endpoint_hash):
+    # Connection parameters
+    db_params = {
+        'host': host,
+        'port': port,
+        'user': user,
+        'password': password,
+        'database': database
+    }
+
+    # Connect to PostgreSQL
+    conn = psycopg2.connect(**db_params)
+    conn.autocommit = True
+
+    # Create cursor
+    cur = conn.cursor()
+
+    try:
+        # Check if the table "activevulnerabilities" exists
+        cur.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'activevulnerabilities')")
+        exists = cur.fetchone()[0]
+
+        if not exists:
+            print("The table 'activevulnerabilities' does not exist!")
+            return None
+
+        # Delete query
+        delete_query = """
+        DELETE FROM activevulnerabilities
+        WHERE endpoint_hash = %s
+        """
+        
+        cur.execute(delete_query, (endpoint_hash,))
+        
+        # Get the number of deleted rows
+        deleted_count = cur.rowcount
+        
+        print(f"Successfully deleted {deleted_count} records with endpoint_hash: {endpoint_hash}")
+        
+        return deleted_count
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return None
+
+    finally:
+        # Close connection
+        cur.close()
+        conn.close()
+
+def get_patch_count_by_endpoint_hash(host, port, user, password, database, specific_endpoint_hash=None):
+    # Connection parameters
+    db_params = {
+        'host': host,
+        'port': port,
+        'user': user,
+        'password': password,
+        'database': database
+    }
+
+    # Connect to PostgreSQL
+    conn = psycopg2.connect(**db_params)
+    conn.autocommit = True
+
+    # Create cursor
+    cur = conn.cursor()
+
+    try:
+        # Check if the table "assetspatchs" exists
+        cur.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'assetspatchs')")
+        exists = cur.fetchone()[0]
+
+        if not exists:
+            print("The table 'assetspatchs' does not exist!")
+            return None
+
+        # Query to get count of rows by endpoint_hash
+        if specific_endpoint_hash:
+            count_query = """
+            SELECT COUNT(*) as row_count
+            FROM assetspatchs
+            WHERE endpoint_hash = %s
+            """
+            cur.execute(count_query, (specific_endpoint_hash,))
+            result = cur.fetchone()
+            return result[0] if result else 0
+        else:
+            count_query = """
+            SELECT endpoint_hash, COUNT(*) as row_count
+            FROM assetspatchs
+            GROUP BY endpoint_hash
+            """
+            cur.execute(count_query)
+            results = cur.fetchall()
+            return {row[0]: row[1] for row in results}
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return None
+
+    finally:
+        # Close connection
+        cur.close()
+        conn.close()
+
+def delete_assetpatchs_by_endpoint_hash(host, port, user, password, database, endpoint_hash):
+    # Connection parameters
+    db_params = {
+        'host': host,
+        'port': port,
+        'user': user,
+        'password': password,
+        'database': database
+    }
+
+    # Connect to PostgreSQL
+    conn = psycopg2.connect(**db_params)
+    conn.autocommit = True
+
+    # Create cursor
+    cur = conn.cursor()
+
+    try:
+        # Check if the table "assetspatchs" exists
+        cur.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'assetspatchs')")
+        exists = cur.fetchone()[0]
+
+        if not exists:
+            print("The table 'assetspatchs' does not exist!")
+            return None
+
+        # Delete query
+        delete_query = """
+        DELETE FROM assetspatchs
+        WHERE endpoint_hash = %s
+        """
+        
+        cur.execute(delete_query, (endpoint_hash,))
+        
+        # Get the number of deleted rows
+        deleted_count = cur.rowcount
+        
+        print(f"Successfully deleted {deleted_count} records with endpoint_hash: {endpoint_hash}")
+        
+        return deleted_count
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return None
+
+    finally:
+        # Close connection
+        cur.close()
+        conn.close()
+
+def check_create_table_groups(host,port,user,password,database):
+    db_params = {
+        'host': host,
+        'port': port,
+        'user': user,
+        'password': password,
+        'database': database
+    }
+
+    conn = psycopg2.connect(**db_params)
+    conn.autocommit = True
+    cur = conn.cursor()
+
+    cur.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'groups')")
+    exists = cur.fetchone()[0]
+
+    if not exists:
+        create_table_query = """
+        CREATE TABLE groups (
+            groupIndex SERIAL PRIMARY KEY,
+            groupId INTEGER,
+            groupName TEXT,
+            groupTeamName TEXT,
+            groupTeamId INTEGER,
+            groupassetcount INTEGER
+        );
+        """
+        cur.execute(create_table_query)
+        print("The table 'groups' was created successfully!")
+    else:
+        print("The table 'groups' already exists!")
+    cur.close()
+    conn.close()
+
+def insert_into_table_groups(json_data,host,port,user,password,database):
+    #print(json_data)
+    # Connection parameters
+    db_params = {
+        'host': host,
+        'port': port,
+        'user': user,
+        'password': password,
+        'database': database
+    }
+    ct = datetime.datetime.now()
+    # Connect to PostgreSQL
+    conn = psycopg2.connect(**db_params)
+    conn.autocommit = True
+    cur = conn.cursor()
+
+    # Insert data into the "assetspatchs" table
+    try:
+        sql = """
+        INSERT INTO groups 
+        (groupid, groupname, groupteamname, groupteamid, groupassetcount) 
+        VALUES (%(groupId)s, %(groupName)s, %(groupTeamName)s, %(groupTeamId)s, %(groupAssetCount)s);
+        """
+
+        for record in json_data:
+            #print(json.dumps(record))
+            #print(sql)
+            cur.execute(sql, record)
+
+        print(str(ct) + f"Records inserted into the table 'groups' successfully:  {len (json_data)}")
+
+    except psycopg2.Error as e:
+        print(str(ct) + "An error occurred while inserting data into the table 'groups':", e)
+        # Printing the last executed query can help in debugging
+        print(cur.mogrify(sql, record))
+
+    # Close connection
+    cur.close()
+    conn.close()
+
+def check_create_table_endpointgroups(host, port, user, password, database):
+    # Parâmetros de conexão
+    db_params = {
+        'host': host,
+        'port': port,
+        'user': user,
+        'password': password,
+        'database': database  # Nome do banco de dados onde The table "groupendpoints" deve ser verificada/criada
+    }
+
+    # Conectar ao PostgreSQL
+    conn = psycopg2.connect(**db_params)
+    conn.autocommit = True
+
+    # Criar cursor
+    cur = conn.cursor()
+
+    # Criar The table "groupendpoints" se não existir
+    create_table_query = """
+    CREATE TABLE IF NOT EXISTS endpointgroups (
+        groupId INT,
+        groupname TEXT,
+        endpointName TEXT,
+        endpoint_id BIGINT,
+        endpoint_hash TEXT
+    );
+    """
+    #,
+    #      PRIMARY KEY (groupname, hostname, endpoint_id, endpoint_hash)
+    cur.execute(create_table_query)
+    print("The table 'endpointgroups' was created or already exists")
+
+    # Fechar conexão
+    cur.close()
+    conn.close()
+
+def insert_into_table_endpointgroups(json_data, host, port, user, password, database):
+    # Connection parameters
+    db_params = {
+        'host': host,
+        'port': port,
+        'user': user,
+        'password': password,
+        'database': database
+    }
+    ct = datetime.datetime.now()
+    # Connect to PostgreSQL
+    conn = psycopg2.connect(**db_params)
+    conn.autocommit = True
+    cur = conn.cursor()
+
+    # Insert data into the "assetspatchs" table
+    try:
+        sql = """
+        INSERT INTO endpointgroups 
+        (groupid, groupname, endpointName, endpoint_id, endpoint_hash) 
+        VALUES (%(groupId)s, %(groupName)s, %(endpointName)s, %(endpointId)s, %(endpointHash)s)
+        """
+
+        for record in json_data:
+            #print(json.dumps(record))
+            #print(sql)
+            cur.execute(sql, record)
+
+        print(str(ct) + f"Records inserted into the table 'endpointgroups' successfully:  {len (json_data)}")
+
+    except psycopg2.Error as e:
+        print(str(ct) + "An error occurred while inserting data into the table 'endpointgroups':", e)
+        # Printing the last executed query can help in debugging
+        print(cur.mogrify(sql, record))
+
+    # Close connection
+    cur.close()
+    conn.close()
+
+def clean_table_endpointgroups(host, port, user, password, database):
+    # Parâmetros de conexão
+    db_params = {
+        'host': host,
+        'port': port,
+        'user': user,
+        'password': password,
+        'database': database  # Nome do banco de dados onde The table "groupendpoints" está localizada
+    }
+
+    # Conectar ao PostgreSQL
+    conn = psycopg2.connect(**db_params)
+    conn.autocommit = True
+
+    # Criar cursor
+    cur = conn.cursor()
+
+    # Verificar se The table "groupendpoints" existe
+    cur.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'endpointgroups')")
+    exists = cur.fetchone()[0]
+
+    if exists:
+        # Limpar The table "groupendpoints"
+        cur.execute("DELETE FROM endpointgroups;")
+        #cur.execute("DROP TABLE groupendpoints;")
+        print("The table  'endpointgroups' was dropped with great success")
+    else:
+        print("The table  'endpointgroups'  does not exist")
+
+    #add column to groupendpoints
+    #table="endpointgroups"
+    #column = [
+    #    "endpoint_hash text"
+    #]
+    #column="endpoint_hash"
+    #add_column_to_table(cur,table,column)
+    #cur.execute(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {column} TEXT;")
+    # Fechar conexão
+    cur.close()
+    conn.close()
+
+def clean_table_groups(host, port, user, password, database):
+    # Parâmetros de conexão
+    db_params = {
+        'host': host,
+        'port': port,
+        'user': user,
+        'password': password,
+        'database': database  # Nome do banco de dados onde The table "groupendpoints" está localizada
+    }
+
+    # Conectar ao PostgreSQL
+    conn = psycopg2.connect(**db_params)
+    conn.autocommit = True
+
+    # Criar cursor
+    cur = conn.cursor()
+
+    # Verificar se The table "groupendpoints" existe
+    cur.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'groups')")
+    exists = cur.fetchone()[0]
+
+    if exists:
+        # Limpar The table "groupendpoints"
+        cur.execute("DELETE FROM groups;")
+        #cur.execute("DROP TABLE groupendpoints;")
+        print("The table  'groups' was dropped with great success")
+    else:
+        print("The table  'groups'  does not exist")
+
+    #add column to groupendpoints
+    #table="endpointgroups"
+    #column = [
+    #    "endpoint_hash text"
+    #]
+    #column="endpoint_hash"
+    #add_column_to_table(cur,table,column)
+    #cur.execute(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {column} TEXT;")
+    # Fechar conexão
     cur.close()
     conn.close()

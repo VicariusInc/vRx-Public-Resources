@@ -24,7 +24,7 @@ def getIncidentesEventsCount(apikey,urldashboard):
 
     except:
         print("something is wrong, will try again....")
-
+    
     return responsecount
 
 def getIncidentEvents(apikey,urldashboard,fr0m,siz3):

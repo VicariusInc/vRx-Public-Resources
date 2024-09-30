@@ -1,0 +1,1 @@
+/usr/local/bin/python /usr/src/app/scripts/VickyTopiaReportCLI.py --activeVulnsTable >> /var/log/ActiveVulnsSync.log 2>&1

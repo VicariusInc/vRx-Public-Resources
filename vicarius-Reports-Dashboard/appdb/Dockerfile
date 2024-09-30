@@ -1,4 +1,4 @@
-FROM postgres:latest
+FROM postgres:16.0
 
 # Copy the custom entrypoint script
 COPY entrypoint.sh /usr/local/bin/

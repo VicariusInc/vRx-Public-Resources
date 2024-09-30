@@ -17,7 +17,15 @@ sleep 20
 
 #/usr/local/bin/python /usr/src/app/scripts/VickyTopiaReportCLI.py --allreports  >> /var/log/crontab.log 2>&1
 #Initial Pull 
+echo "Initial Pull: Starting" 
+date
 /usr/local/bin/python /usr/src/app/scripts/VickyTopiaReportCLI.py --allreports >> /var/log/initialsync.log 2>&1
+#nohup /usr/local/bin/python /usr/src/app/scripts/launcher.py &
+echo "Initial Pull: Completed" 
+date
 
 # Start cron in foreground
-cron -f
+#cron -f
+echo "Starting Scheduler"
+date
+/usr/local/bin/python /usr/src/app/scripts/launcher.py
