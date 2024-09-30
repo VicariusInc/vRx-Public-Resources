@@ -14,21 +14,22 @@ def getCountEndpoints(apikey,urldashboard):
     params = {
         'from': 0,
         'size': 1,
+        'sort': '+endpointId'
     }
 
     try:
         response = requests.get(urldashboard + '/vicarius-external-data-api/endpoint/search', params=params, headers=headers)
         jsonresponse = json.loads(response.text)
         responsecount = jsonresponse['serverResponseCount']
+        firstID = jsonresponse['serverResponseObject'][0]['endpointId']
 
     except:
         print("something is wrong, will try again....")
         print("response: ",response.text)
 
-    return responsecount
+    return responsecount,firstID
 
-def getEndpoints(apikey,urldashboard,fr0m,siz3):
-
+def getEndpoints(apikey,urldashboard,fr0m,siz3,lastEID):
     headers = {
         'Accept': 'application/json',
         'Vicarius-Token': apikey,
@@ -37,6 +38,8 @@ def getEndpoints(apikey,urldashboard,fr0m,siz3):
     params = {
         'from': fr0m,
         'size': siz3,
+        'sort': '+endpointId',
+        'q': 'endpointId>' + str(lastEID)
     }
     print("gettingEndpoints -> Endpoints.py")
     try:
@@ -49,9 +52,13 @@ def getEndpoints(apikey,urldashboard,fr0m,siz3):
         
     except:
         print("something is wrong, will try again....")
-
+    print("Status Code: " + str(response.status_code))
+    #print(parsed)
     strEndpoints = ""
     strEPStatus = ""
+    jsonEndpoints = []
+    jsonEPStatus = []
+
     runtime = datetime.now()
     for i in parsed['serverResponseObject']:
         deployment_date = str(i['endpointCreatedAt'])
@@ -76,11 +83,37 @@ def getEndpoints(apikey,urldashboard,fr0m,siz3):
             connectedbyProxy = i['endpointConnectedByProxy']
         except:
             connectedbyProxy = ""
-
-        strEndpoints += ("'" + str(i['endpointId']) + "','" + i['endpointName'] + "','" + i['endpointHash'] + "','" + str(alive) + "','" + operatingSystemName + "','" + agentVersion + "','" + substatus + "','" + str(connectedbyProxy) + "','" + tokenGenTime + "','" + deployment_date + "','" + last_connected + "','" + deploymentDate + "','" + LastContact + "'\n")
-        strEPStatus += ("'" + str(i['endpointId']) + "','" + i['endpointName'] + "','" + i['endpointHash'] + "','" + str(alive) + "','" + str(connectedbyProxy) + "','"  + LastContact + "','" + str(runtime) + "'\n")
-    
-    return strEndpoints,strEPStatus
+        listEndpoints = {
+            'endpointId': i['endpointId'],
+            'endpointName': i['endpointName'],
+            'endpointHash': i['endpointHash'],
+            'alive': str(alive),
+            'operatingSystemName': operatingSystemName,
+            'agentVersion': agentVersion,
+            'substatus': substatus,
+            'connectedbyProxy': str(connectedbyProxy),
+            'tokenGenTime': tokenGenTime,
+            'deployment_date': deployment_date,
+            'last_connected': last_connected,
+            'deploymentDate': deploymentDate,
+            'LastContact': LastContact
+        }
+        jsonEndpoints.append(listEndpoints)
+        # Constructing the list of dictionaries for EP status
+        listEPStatus = {
+            'endpointId': i['endpointId'],
+            'endpointName': i['endpointName'],
+            'endpointHash': i['endpointHash'],
+            'alive': str(alive),
+            'connectedbyProxy': str(connectedbyProxy),
+            'LastContact': LastContact,
+            'runtime': str(runtime)
+        }
+        jsonEPStatus.append(listEPStatus)
+        #strEndpoints += ("'" + str(i['endpointId']) + "','" + i['endpointName'] + "','" + i['endpointHash'] + "','" + str(alive) + "','" + operatingSystemName + "','" + agentVersion + "','" + substatus + "','" + str(connectedbyProxy) + "','" + tokenGenTime + "','" + deployment_date + "','" + last_connected + "','" + deploymentDate + "','" + LastContact + "'\n")
+        #strEPStatus += ("'" + str(i['endpointId']) + "','" + i['endpointName'] + "','" + i['endpointHash'] + "','" + str(alive) + "','" + str(connectedbyProxy) + "','"  + LastContact + "','" + str(runtime) + "'\n")
+    #print(jsonEndpoints)
+    return jsonEndpoints,jsonEPStatus
 
 def getEndpoitsExternalAttributesCount(apikey,urldashboard):
     

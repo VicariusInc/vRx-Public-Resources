@@ -32,7 +32,8 @@ fi
 
 # Step 2: Clean up the logs and reports directories
 echo "Cleaning up logs and reports..."
-find  ./app/reports/* -type f -not -name '.gitignore' -print0 | xargs -0 rm -rf
+#find  ./app/reports/* -type f -not -name '.gitignore' 'state.json' -print0 | xargs -0 rm -rf
+find ./app/reports/* -type f \( -not -name '.gitignore' -and -not -name 'state.json' \) -print0 | xargs -0 rm -rf
 
 
 # Step 4: Handle the database volume
@@ -49,3 +50,16 @@ echo "Deploying Docker stack..."
 docker stack deploy -c docker-compose.yml vrx-reports-stack
 
 echo "Deployment completed."
+echo "Downloading the latest data template"
+pwd 
+URL="https://github.com/VicariusInc/vRx-Public-Resources/releases/latest/download/mb-datatemplate.dump.gz"
+OUTPUT_DIR=$(pwd)
+wget -O "$OUTPUT_DIR/app/scripts/metabase/mb-datatemplate.dump.gz" "$URL"
+
+sleep 20
+container_name=$(docker ps | grep 'vrx-reports-stack_app.1' | awk '{print $NF}')
+docker exec -it "$container_name" /usr/local/bin/python  /usr/src/app/scripts/VickyTopiaReportCLI.py --metabaseTempalateReplace
+echo "Running data template upgrade" 
+
+
+bash ./optional-metabaseInstall.sh

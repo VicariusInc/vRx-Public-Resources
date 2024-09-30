@@ -36,7 +36,7 @@ services:
       - ./app/reports:/usr/src/app/reports
       - ./app/logs:/var/log
       - ./app/scripts:/usr/src/app/scripts
-      - /etc/localtime:/etc/localtime:ro 
+      - /etc/localtime:/etc/localtime:ro
     networks:
       - vicarius-network
     secrets:
@@ -52,6 +52,7 @@ volumes:
 networks:
   vicarius-network:
     attachable: true
+
 
 secrets:
   api_key:

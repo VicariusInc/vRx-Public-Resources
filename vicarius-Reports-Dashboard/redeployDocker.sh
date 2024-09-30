@@ -5,12 +5,14 @@ set -e
 
 # Function to check if a Docker network exists
 check_network() {
+    echo "Check network function"
     docker network ls | grep -w $1 > /dev/null
     return $?
 }
 
 # Function to get the type of a Docker network
 get_network_type() {
+    echo "Get network function"
     docker network inspect --format '{{ .Scope }}' $1 2> /dev/null || echo "none"
 }
 
