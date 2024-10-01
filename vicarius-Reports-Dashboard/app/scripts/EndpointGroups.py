@@ -65,6 +65,7 @@ def getAssetsbyGroupID(apikey,urldashboard,groupName,groupId,fr0m,siz3,trycount=
 
     except:
         print('Something is wrong to obtain assets in group')
+        src = 0 
 
     return src,[{'groupId': groupId, 'groupName': groupName,'endpointName': i['endpointName'], 'endpointId': i['endpointId'], 'endpointHash': i['endpointHash']}
             for i in jresponse.get('serverResponseObject', [])]
@@ -114,6 +115,7 @@ def getEndpointGroupsID(apikey, urldashboard, fr0m, siz3, trycount=0):
         #print(f'headers')
     except requests.RequestException as e:
         print(f"Error fetching groups: {e}")
+        src = 0 
         return []
 
     return src,[{'groupName': i['organizationEndpointGroupName'], 'groupID': i['organizationEndpointGroupId'], 'groupTeam': i['organizationEndpointGroupOrganizationTeam']['organizationTeamName'], 'groupTeamId': i['organizationEndpointGroupOrganizationTeam']['organizationTeamId']}
