@@ -87,8 +87,9 @@ try:
     while True:
         print("Running Script: " +  str(datetime.now()))
         logger.info("Running Script:" +  str(datetime.now()))
-        time.sleep(3600)
         gc.collect()
+        time.sleep(3600)
+        
 except (KeyboardInterrupt, SystemExit):
     # Shut down the scheduler when exiting
     scheduler.shutdown()
