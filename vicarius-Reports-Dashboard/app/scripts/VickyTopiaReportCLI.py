@@ -282,6 +282,7 @@ def getWaitingEndpoitnTasks():
                     src = 0 
     else: 
         print("No Tasks in Waiting")
+
 def getAllEndpoitsold(fr0m,siz3,count,pbar):
     control_rate(20)
     try:
@@ -1628,8 +1629,6 @@ def main():
                 errorList.append("getWaitingEndpoitnTasks:" + str(e))
                 print(str(e)) 
             
-
-
         elif args.vulnreport:
             reports = "vulnreport" 
             ReportVunerabilities()        
