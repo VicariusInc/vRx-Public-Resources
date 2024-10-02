@@ -1,316 +1,258 @@
-# Vicarius-vRx-Reports-Dashboard
+# vAnalyzer
 
 Tested on Ubuntu Server 22.04 LTS
 
-# VicariusVrxReports Setup Instructions
+# vAnalyzer Setup Instructions
 
-## Prerequisites 
+### Prerequisites
 
-### Virtual Machine 
-A virtual machine is recommended to install the vRx Reports Dashboard. 
+#### Virtual Machine
+A virtual machine is recommended for this installation. Ensure you have allocated sufficient resources based on the number of assets in your dashboard.
 
-#### Sizing Recommendations 
-Sizing recommendations are based on the number of assets in your dashboard. 
- * Less than 500 assets
-   * 2 Core CPU - 4 GB Ram - 20 GB Disk
- * 500 to 1000 assets
-   * 2 Core CPU - 8 GB Ram - 30 GB Disk
- * Over 1000 assets
-   * 4 Core CPU - 12 GB Ram - 50 GB Disk    
+**Sizing Recommendations:**
+- Less than 500 assets: 2 Core CPU, 4 GB RAM, 20 GB Disk
+- 500 to 1000 assets: 2 Core CPU, 8 GB RAM, 30 GB Disk
+- Over 1000 assets: 4 Core CPU, 12 GB RAM, 50 GB Disk
 
 #### OS Recommendations
-  * Ubuntu 22.04 has been thoroughly tested
-  * Any OS that supports Bash scripting and Docker
+Ubuntu 22.04 is recommended and has been thoroughly tested. Other OSes that support Bash scripting and Docker are also compatible.
 
+### Step-by-Step Installation Method
 
-### Review the following KB article to create a new API Key from your Vrx Dashboard
-https://customer-portal.vicarius.io/getting-started-with-vrx-rest-api
+#### Step 1: Download and Unzip the File
+Download the package to the asset that will host the Docker containers:
 
-### Your dashboard_id corresponds to the url you use to login to your dashboard
-Example: organization in https://organization.vicarius.cloud/
-
-## HTTPS is required to access the dashboard
-If you are using the builtin dashboard, A DNS A record is record. 
-
-### DNS Host Name
-A DNS hostname is required for this implmentation!
-Prior to deployment please configure an a record to access the dashboard. The a record can be in public or private. 
-If a public record is used https will be setup with a letsencrypt cert automatically. If a private record is used a default cert will be used. 
-
-
-
-# Installation Method 
-## Method 1: URL Download
-
-### Download and unzip the file
-Download the package to the asset that will host the docker containers: https://github.com/VicariusInc/vRx-Public-Resources/releases/latest/download/vicarius-vrx-reports.tar.gz
-
-Newest Version
 ```bash
-mkdir vicarius-vrx-reports-dashboard
-cd vicarius-vrx-reports-dashboard
+mkdir vAnalyzer
+cd vAnalyzer
 wget https://github.com/VicariusInc/vRx-Public-Resources/releases/latest/download/vicarius-vrx-reports.tar.gz
 tar -xvzf vicarius-vrx-reports.tar.gz
 ```
 
-
-### Install Docker and configure the containers
-Install the Docker stack using the installDocker.sh script:
+#### Step 2: Install Docker and Configure the Containers
+Install the Docker stack using the `installDocker.sh` script:
 
 ```bash
 sudo chmod +x installDocker.sh
 sudo ./installDocker.sh
 ```
 
-### Initialize Docker Secrets 
-Create docker secrets to stor your dashboard_id, api_key, postgres_user, postgres_password
+#### Step 3: Initialize Docker Secrets
+Create Docker secrets to store your dashboard_id, api_key, postgres_user, and postgres_password.
 
 ```bash
 sudo chmod +x initDocker.sh
 sudo ./initDocker.sh
 ```
+Follow the prompts to enter your 
+ * API key (obtained from vRx dashboard)
+ * Dashboard ID (dashboard_id.vicarius.cloud)
+ * PostgreSQL user 
+ * Password 
+ * Optionally specify any additional tools you want to install like Metabase. ![image](https://github.com/user-attachments/assets/1977a467-7db5-42a4-ad1e-a20fbb20e693)
+
 Copy your api key from the vRx dashboard 
 - Login into your dashboard
 - go to Settings - Integrations - Installed Integrations - API
 - Click on the API and copy the API Key
 ![image](https://github.com/user-attachments/assets/25ebe66a-7eeb-4e0e-a2e3-32c22d032517)
 
-
-
 Your dashboard_ID is the first portion of your dashboard url 
 - https://example.vicarius.cloud, Dashboard_id is example
 ![image](https://github.com/user-attachments/assets/84302dfc-10c6-43e2-a959-ce909ac71104)
 
+#### Step 4: Build and Push Docker Images to Registry
+Deploy the Docker stack using the `buildPushDocker.sh` script:
 
-Create the password for the local Database. This user will be used to access the database by data visualization tools. Please keep the username and password in a safe place
-
-Optional Tools:
-Specify Which Optional Tools you would like to be installed. 
-- Metabase: Data Visualization with Template
-![image](https://github.com/user-attachments/assets/1977a467-7db5-42a4-ad1e-a20fbb20e693)
-
-
-
-### Bulid and push Docker images to Registry 
-Deploy the Docker stack using the buildPushDocker.sh script:
 ```bash
 sudo chmod +x buildPushDocker.sh
 sudo ./buildPushDocker.sh
 ```
 
-### Deploy Containers 
-Deploy the Docker stack using the redeployDocker.sh script:
+#### Step 5: Deploy Containers
+Deploy the Docker stack using the `redeployDocker.sh` script:
+
 ```bash
 sudo chmod +x redeployDocker.sh
 sudo ./redeployDocker.sh
 ```
+Note: Running this script will overwrite any existing application database. If you need to update the Docker image while keeping the database intact, use the `updateDocker.sh` script instead.
 
-* Running the redeployDocker.sh script will overwrite any existing application database. To update the docker image and keep the database intact use updateDocker.sh
+#### Step 6: Confirm the Deployment
+Run `docker ps` to confirm that the containers are up and running.
 
-
-# Confirm the Deployment
-
-Run docker ps to confirm the containers are up.
 ```bash
-sudo docker ps
+sudo docker service ls 
 ```
 ![image](https://github.com/user-attachments/assets/714798b3-cbac-47c9-8942-619d1d831b4e)
 
+You should see a list of running Docker services related to your vAnalyzer setup.
 
 
-# Optional Tools
+## vAnalyzer Dashboard (Metabase) 
+By following these steps, you will setup and deploy the vAnalyzer on your Ubuntu Server system.
 
-## Metabase
+### Prerequisites
+
+#### Licenseing
+##### Metabase
 https://www.metabase.com/
 https://www.metabase.com/start/oss/
 https://www.metabase.com/license/
 Metabase is an open-source business intelligence platform licensed under AGPL. You can use Metabase to ask questions about your data, or embed Metabase in your app to let your customers explore their data on their own.
 
-* It is recommended to let the app complete the initialization and first run before launching metabase. 
-* The initial run can take several hours depending on the size of your data.
-* A progress bar is planned 
-* To check run the status of the deployment run this command 
-
-```bash 
-tail -n 10 -f app/logs/initialsync.log
-```
-
-* * Use ctrl-c to exit the log view. 
-
-Metabase will install with Traefik to facilitate SSL/TLS connections. 
-
-## HTTPS is required to access the dashboard
-If you are using the builtin dashboard, A DNS A record is record. 
-
-### DNS Host Name
-A DNS hostname is required for this implmentation!
-
-* Prior to deployment please configure an a record to access the dashboard. The a record can be in public or private. 
-If a public record is used https will be setup with a letsencrypt cert automatically. If a private record is used a default cert will be used. 
-
+#### DNS Configuration
+- **HTTPS/TLS Configuration:** Ensure you have properly configured HTTPS/TLS for secure communication if applicable.
+A DNS hostname is required for this implementation. Before deployment, configure an A record to access the dashboard. The A record can be in public or private:
+- If a public record is used, HTTPS will be set up with a Let's Encrypt cert automatically.
+- If a private record is used, a default cert will be used.
 
 ### Install Metabase
 
-Add a hostname to the metabase docker compose file
-```bash
-nano metabase/docker-compose.yml
-``` 
-Locate line 23 inside the labels section and add your hostname
+1. **Add Hostname to Docker Compose File**
+
+   Edit the `metabase/docker-compose.yml` file:
+   ```bash
+   nano metabase/docker-compose.yml
+   ```
+   Locate line 23 inside the labels section and add your hostname:
+   ```yaml
+   - "traefik.http.routers.metabase.rule=Host(`metabase.example.com`)"
+   ```
 ![image](https://github.com/user-attachments/assets/5fe180af-340e-4cbf-95e3-84bcd9338c18)
 
+2. **Add Your Email for Let's Encrypt Certificate (Optional)**
 
-Once complete line 23 should read something like this
-```bash
-- "traefik.http.routers.metabase.rule=Host(`metabase.example.com`)"
-```
-Add your email for a lets encrypt certificate
-* you can skip this step if metabase will not be exposed to the public internet 
-```bash
-nano traefik/config/traefik.yaml
-``` 
-Locate line 44 inside the certificatesResolvers: section and replace admin@example.com with your email
+   Edit the `traefik/config/traefik.yaml` file:
+   ```bash
+   nano traefik/config/traefik.yaml
+   ```
+   Locate line 44 inside the `certificatesResolvers` section and replace `admin@example.com` with your email:
+   ```yaml
+   certificatesResolvers:
+     letsencrypt:
+       acme:
+         email: admin@yourdomain.com
+         storage: acme.json
+         httpChallenge:
+           entryPoint: web
+   ```
 ![image](https://github.com/user-attachments/assets/66a58e00-1692-4bc0-93cc-2530b39ca59e)
 
+3. **Run the Metabase Installation Script**
 
+   Make the script executable and run it:
+   ```bash
+   sudo chmod +x optional-metabaseInstall.sh
+   sudo ./optional-metabaseInstall.sh
+   ```
 
-To install Metabase run the optional-metabaseInstall.sh script.
-```bash
-sudo chmod +x optional-metabaseInstall.sh
-sudo ./optional-metabaseInstall.sh
- ```
-### Check that Metabase is running
+### Check That Metabase is Running
 
-Metabase Docker Service 
-```bash
-sudo docker service ls
- ```
-![image](https://github.com/user-attachments/assets/c734283e-e266-44c6-a1dc-690448c2e38f)
+1. **List Docker Services**
 
+   Verify that the Metabase service is running:
+   ```bash
+   sudo docker service ls
+   ```
+   The containers can take 5 minutes to come online and be active.
+   ![image](https://github.com/user-attachments/assets/c734283e-e266-44c6-a1dc-690448c2e38f)
 
-*The containers can take 5 minutes to come online and be active 
+2. **Navigate to Metabase Installation in a Web Browser**
 
-### Configure Metabase
-Navigate to Metabase installation in a web browser 
-- > https://your_host
+   Open your web browser and go to:
+   ```
+   https://your_host
+   ```
 
-The Metabase installation installs a template by default. When you navigate to the your installation you will receive a login page. Please log in using the default credentials 
-* The Login prompt can take some time to appear depending how much data needs to be pulled into the local database from vRx.
+3. **Log In Using Default Credentials**
 
+   - Default Username: `vrxadmin@vrxadmin.com`
+   - Default Password: `Vicarius123!@#`
 
-- Default Username: vrxadmin@vrxadmin.com
-- Default Password: Vicarius123!@#
+4. **Change the Default Password**
 
-Once Logged in go to settings account settings and change the default password 
+   Once logged in, go to:
+   ```
+   Settings > Account settings
+   ```
+   Change the default password for security reasons.
 ![image](https://github.com/user-attachments/assets/c44a9547-8ea8-4317-8edb-fe52634433dc)
 
+5. **Change Database Settings**
 
-
-After changing the default credentials, Change the database settings to reflect the database user and password created earlier.
-
-- Go to Settings - Admin Settings - Selecte Database on the top navigation window
+   Go to:
+   ```
+   Settings > Admin Settings > Select "Database" on the top navigation window
+   ```
+   - Select the `vRX-Reports` database
+   - Change the following settings:
+     - Database Name: Your dashboard name
+     - Username: The database user created earlier
+     - Password: The database password created earlier
+   - Save Changes
 ![image](https://github.com/user-attachments/assets/c4ea21bd-1dd7-416b-8f74-fbba22dba250)
 
-- Select the vRX-Reports database
-- Change the following settings
-  - Database Name: Your dashboard name
-  - Username: Database user created earlier
-  - Passowrd: Database password created earlier
-- Save Changes
+### Additional Notes
 
-## Portainer CE
-https://docs.portainer.io/start/install-ce
-Portainer Community Edition (CE) is our foundation. With over half a million regular users, CE is a powerful, open source toolset that allows you to easily build and manage containers in Docker, Docker Swarm, Kubernetes and Azure ACI.
+- **Log View**: To check the status of the initial sync, you can view the log file:
+  ```bash
+  tail -n 10 app/logs/initialsync.log
+  ```
 
-To install Portainer run the portainerInstall.sh script.
-```bash
-sudo chmod +x portainerInstall.sh
-sudo ./portainerInstall.sh
- ```
+- **Metabase Docker Service**: Ensure that Metabase is active and running properly using the command:
+  ```bash
+  sudo docker service ls
+  ```
 
----
-
-**Additional Notes:**
-- Ensure your Docker and Docker Compose versions support `version: '3.7'` as specified in `docker-compose.yml`.
-- Adjust volume paths in `docker-compose.yml` as needed based on your directory structure.
-- Verify that `entrypoint.sh` and `crontab` are correctly configured for your application.
+By following these steps, you should be able to successfully install and configure Metabase with your VicariusVrxReports Dashboard on an Ubuntu Server system.
 
 
+## Updating vAnalyzer
 
 
+This process updates the `app` and `appdb` containers.
+** Note: Any additional reports or custom reports will be over written by this process **
 
-# Updating the vRx Reports Dashboard
-There are two types of upgrades to the vRx reports dashboard. 
+#### Step 1: Download and Unzip the File
 
-## App update 
-- Updates the app and appdb containers 
+1. **Create a New Folder**:
+   ```bash
+   mkdir vAnalyzer
+   cd vAnalyzer
+   ```
+   Replace `<folder_name>` with your desired folder name.
 
-### Download and unzip the file
-Make a new folder to extract to the tar file to
-```bash
-mkdir <folder_name>
-cd <folder_name>
-```
+2. **Download the Package**:
+   ```bash
+   wget https://github.com/VicariusInc/vRx-Public-Resources/releases/latest/download/vicarius-vrx-reports.tar.gz
+   tar -xvzf vicarius-vrx-reports.tar.gz
+   ```
 
-Download the package to the asset that will host the docker containers
-vRxReportsDashboard.tar.gz 
-```bash
-wget https://github.com/VicariusInc/vRx-Public-Resources/releases/latest/download/vicarius-vrx-reports.tar.gz
-tar -xvzf vicarius-vrx-reports.tar.gz
-```
+#### Step 2: Build and Push Docker Images to Registry
 
-### Bulid and push Docker images to Registry 
-Deploy the Docker stack using the buildPushDocker.sh script:
-```bash
-sudo chmod +x buildPushDocker.sh
-sudo ./buildPushDocker.sh
-```
+1. **Make the Script Executable**:
+   ```bash
+   sudo chmod +x buildPushDocker.sh
+   ```
 
-### Update the containers
-Update the Docker stack using the updateDocker.sh script:
-```bash
-sudo chmod +x updateDocker.sh
-sudo ./updateDocker.sh
-```
-*Note, if you receive an error run the command again after a few seconds. 
+2. **Run the Script**:
+   ```bash
+   sudo ./buildPushDocker.sh
+   ```
 
-This process will not deploy any optional containers. If you are running a web dashboard and want to update the web dashboard proceed to the next section. If you do not want to update the web dashboard, run the following command:
-```bash
-sudo chmod +x optional-metabaseInstall.sh
-sudo ./optional-metabaseInstall.sh
- ```
+#### Step 3: Update the Containers
 
-## Reports Dashboard Template update
-- Updates the Dashboard graphics
-*Note: Any custom graphics will be erased and the login to the Reports Dashboard will be reset.
+1. **Make the Script Executable**:
+   ```bash
+   sudo chmod +x updateDocker.sh
+   ```
 
-1. Make sure the report container is not running
-```bash
-sudo docker service rm vrx-reports-stack_metabase
- ```
+2. **Run the Script**:
+   ```bash
+   sudo ./updateDocker.sh
+   ```
+   *Note: If you receive an error, run the command again after a few minutes.*
 
 
-2. Start the mgntDasboard 
-```bash
-sudo chmod +x optional-webapp.sh
-sudo ./optional-webapp.sh
- ```
-3. Navigate to HTTP://<your-host>:8000
-*Note this should not be publicly accessible. Please make sure you have proper ACLs. 
-
-4. Select the Update Report Template button 
-- Wait for the page to load. This process can take several minutes
-
-After the page loads, you should see the following output:
-*Metabase Template is up to date*
-
-This confirms the template updated. 
-
-![image](https://github.com/user-attachments/assets/8c8776f4-a3e3-4be3-8a5b-063992939af2)
-
-
-5. Stop the web management app.
- ```bash
-sudo docker service rm vrx-reports-stack_web
- ```
-
-Now Follow the steps to setup ![Metabase](## Metabase)
+By following these detailed steps, you should be able to successfully update both the app containers and the optional web dashboard for your vRx reports dashboard.
