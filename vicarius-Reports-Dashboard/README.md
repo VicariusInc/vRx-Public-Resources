@@ -213,14 +213,13 @@ A DNS hostname is required for this implementation. Before deployment, configure
   sudo docker service ls
   ```
 
-By following these steps, you should be able to successfully install and configure Metabase with your VicariusVrxReports Dashboard on an Ubuntu Server system.
+By following these steps, you will have successfully instaledl and configure Metabase as your vAnalyzer Dashboard on an Ubuntu Server system.
 
 
 ## Updating vAnalyzer
 
 
 This process updates the `app` and `appdb` containers.
-
 ** Note: Any additional reports or custom reports will be over written by this process **
 
 #### Step 1: Download and Unzip the File
@@ -264,4 +263,4 @@ This process updates the `app` and `appdb` containers.
    *Note: If you receive an error, run the command again after a few minutes.*
 
 
-By following these detailed steps, you should be able to successfully update both the app containers and the optional web dashboard for your vRx reports dashboard.
+By following these steps, you will successfully update both the app containers and the optional web dashboad of vAnalyzer.
