@@ -1,10 +1,12 @@
 # vAnalyzer
 
-Tested on Ubuntu Server 22.04 LTS
+
 
 # vAnalyzer Setup Instructions
 
 ### Prerequisites
+
+Tested on Ubuntu Server 22.04 LTS
 
 #### Virtual Machine
 A virtual machine is recommended for this installation. Ensure you have allocated sufficient resources based on the number of assets in your dashboard.
@@ -51,14 +53,20 @@ Follow the prompts to enter your
  * Password 
  * Optionally specify any additional tools you want to install like Metabase. ![image](https://github.com/user-attachments/assets/1977a467-7db5-42a4-ad1e-a20fbb20e693)
 
-Copy your api key from the vRx dashboard 
+
+##### Copy your api key from the vRx dashboard 
+
 - Login into your dashboard
 - go to Settings - Integrations - Installed Integrations - API
 - Click on the API and copy the API Key
+
 ![image](https://github.com/user-attachments/assets/25ebe66a-7eeb-4e0e-a2e3-32c22d032517)
 
-Your dashboard_ID is the first portion of your dashboard url 
+
+
+##### Your dashboard_ID is the first portion of your dashboard url 
 - https://example.vicarius.cloud, Dashboard_id is example
+
 ![image](https://github.com/user-attachments/assets/84302dfc-10c6-43e2-a959-ce909ac71104)
 
 #### Step 4: Build and Push Docker Images to Registry
