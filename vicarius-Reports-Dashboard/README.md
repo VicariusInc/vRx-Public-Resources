@@ -220,6 +220,7 @@ By following these steps, you should be able to successfully install and configu
 
 
 This process updates the `app` and `appdb` containers.
+
 ** Note: Any additional reports or custom reports will be over written by this process **
 
 #### Step 1: Download and Unzip the File
